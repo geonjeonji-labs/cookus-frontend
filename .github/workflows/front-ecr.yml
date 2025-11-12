@@ -1,4 +1,4 @@
-name: web-ecr
+name: front-ecr
 on:
   push:
     branches: [ main ]
