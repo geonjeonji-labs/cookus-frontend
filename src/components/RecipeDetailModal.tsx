@@ -198,9 +198,14 @@ function parseIngredients(x: any): string[] {
 function parseSteps(x: any): string[] {
   if (!x) return []
   const raw: string[] = []
-  if (Array.isArray(x)) raw.push(...x)
-  else if (typeof x === 'object') raw.push(...Object.values(x))
-  else raw.push(String(x))
+  if (Array.isArray(x)) {
+    raw.push(...x.map((item) => String(item ?? '')))
+  } else if (typeof x === 'object') {
+    const values = Object.values(x as Record<string, unknown>).map((item) => String(item ?? ''))
+    raw.push(...values)
+  } else {
+    raw.push(String(x ?? ''))
+  }
 
   const steps: string[] = []
   raw

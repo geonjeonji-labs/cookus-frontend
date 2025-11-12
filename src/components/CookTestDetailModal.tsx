@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ModalFrame from './ModalFrame'
 import { cooktestAPI, type CookPost, type EventDetail } from '../api/cooktest'
 import CreateCookTestPostModal from './CreateCookTestPostModal'

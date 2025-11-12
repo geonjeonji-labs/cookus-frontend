@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { authAPI } from '../api/auth'
 import type { User } from '../api/auth'
 import EditProfileDialog from '../components/EditProfileDialog'
@@ -7,10 +7,15 @@ import BadgeDisplaySelector from '../components/badges/BadgeDisplaySelector'
 import { badgesAPI, type BadgeOverview } from '../api/badges'
 import './MyPage.css'
 
-type Props = { isLoggedIn: boolean; onRequireLogin: () => void }
+type Props = {
+  isLoggedIn: boolean
+  onRequireLogin: () => void
+  user: User | null
+  refreshUser: () => Promise<User>
+}
 
-export default function MyPage({ isLoggedIn, onRequireLogin }: Props) {
-  const [me, setMe] = useState<User | null>(null)
+export default function MyPage({ isLoggedIn, onRequireLogin, user, refreshUser }: Props) {
+  const [me, setMe] = useState<User | null>(user)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -23,12 +28,15 @@ export default function MyPage({ isLoggedIn, onRequireLogin }: Props) {
   const [displayLoading, setDisplayLoading] = useState(false)
   const [displayError, setDisplayError] = useState<string | null>(null)
 
-  const fetchMe = async () => {
+  const fetchMe = useCallback(async () => {
     setLoading(true); setError(null)
-    try { setMe(await authAPI.me()) }
-    catch { setError('내 정보를 불러오지 못했습니다.') }
-    finally { setLoading(false) }
-  }
+    try {
+      const profile = await refreshUser()
+      setMe(profile)
+    } catch {
+      setError('정보를 불러오지 못했어요')
+    } finally { setLoading(false) }
+  }, [refreshUser])
 
   function FieldRow({
     label,
@@ -96,6 +104,10 @@ export default function MyPage({ isLoggedIn, onRequireLogin }: Props) {
 
 
   useEffect(() => {
+    setMe(user)
+  }, [user])
+
+  useEffect(() => {
     if (isLoggedIn) {
       fetchMe()
       fetchBadges()
@@ -105,7 +117,7 @@ export default function MyPage({ isLoggedIn, onRequireLogin }: Props) {
       setBadgeError(null)
       setBadgeLoading(false)
     }
-  }, [isLoggedIn])
+  }, [isLoggedIn, fetchMe])
 
   if (!isLoggedIn) {
     return (
