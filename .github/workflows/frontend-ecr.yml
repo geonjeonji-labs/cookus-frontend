@@ -5,7 +5,7 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPO: cookus-frontend
-  VITE_API_URL: https://api.stage.cookus.team-domain.com
+  VITE_API_URL: http://3.35.234.62:8600
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
