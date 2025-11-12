@@ -1,4 +1,4 @@
-name: front-ecr
+name: frontend-ecr
 on:
   push:
     branches: [ main ]
