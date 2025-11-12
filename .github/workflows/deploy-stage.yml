@@ -1,8 +1,8 @@
-name: deploy-stage (reusable)
+name: deploy-stage
 
 on:
-  workflow_call: {}                       # 변경점: 재사용 워크플로로 전환
-  workflow_dispatch: {}                   # 옵션: 수동 실행도 허용
+  workflow_call: {}
+  workflow_dispatch: {}
 
 concurrency:
   group: cookus-deploy-stage
