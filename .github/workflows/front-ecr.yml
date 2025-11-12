@@ -1,0 +1,31 @@
+name: front-ecr
+on:
+  push:
+    branches: [ main ]
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPO: cookus-frontend
+  VITE_API_URL: https://api.stage.cookus.team-domain.com
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions: { id-token: write, contents: read }  # OIDC
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: docker build --build-arg VITE_API_URL=${{ env.VITE_API_URL }} -t web:${{ github.sha }} .
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Push to ECR
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR="$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO }}"
+          docker tag web:${{ github.sha }} $ECR:${{ github.sha }}
+          docker tag web:${{ github.sha }} $ECR:stage
+          docker push $ECR:${{ github.sha }}
+          docker push $ECR:stage
