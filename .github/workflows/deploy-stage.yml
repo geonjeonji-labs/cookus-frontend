@@ -13,14 +13,48 @@ jobs:
   deploy:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+
+    # ✅ job 스코프에서 공유 (step마다 재선언 문제 방지)
+    env:
+      EC2_HOST_RAW: ${{ secrets.EC2_HOST }}
+      EC2_USER: ec2-user
+
     steps:
+      - name: Fail fast if secrets missing  # ✅ 비어있으면 즉시 실패
+        run: |
+          set -euo pipefail
+          [ -n "${EC2_HOST_RAW:-}" ] || { echo "::error::EC2_HOST is empty (check repo Secrets value)"; exit 1; }
+          [ -n "${{ secrets.EC2_SSH_KEY }}" ] || { echo "::error::EC2_SSH_KEY is empty"; exit 1; }
+          echo "Secrets exist ✓"
+
+      - name: Normalize EC2_HOST  # ✅ CR/LF·앞뒤 공백 제거
+        id: norm
+        run: |
+          set -euo pipefail
+          CLEANED="$(printf '%s' "${EC2_HOST_RAW}" | tr -d '\r' | xargs)"
+          [ -n "$CLEANED" ] || { echo "::error::EC2_HOST trimmed to empty (hidden whitespace?)"; exit 1; }
+          echo "len_before=${#EC2_HOST_RAW}" >> $GITHUB_OUTPUT
+          echo "len_after=${#CLEANED}" >> $GITHUB_OUTPUT
+          echo "EC2_HOST=$CLEANED" >> $GITHUB_ENV
+          echo "Normalized host ✓"
+
+      - name: Show sanitized lengths (no secret leak)
+        run: |
+          echo "len_before=${{ steps.norm.outputs.len_before }}, len_after=${{ steps.norm.outputs.len_after }}"
+
       - name: Write SSH key
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          umask 077
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > key.pem
           chmod 600 key.pem
-      - name: Run remote deploy script on EC2
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+
+      - name: Test SSH connectivity  # ✅ 어디서 막히는지 즉시 확인
         run: |
-          ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$EC2_HOST \
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=accept-new -i key.pem "${EC2_USER}@${EC2_HOST}" "echo connected: $(hostname)"
+
+      - name: Run remote deploy script on EC2
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=accept-new -i key.pem "${EC2_USER}@${EC2_HOST}" \
             'bash -lc "/home/ec2-user/deploy_stage.sh"'
