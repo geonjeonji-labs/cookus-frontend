@@ -13,6 +13,31 @@ const api = axios.create({
 
 // --- 요청 인터셉터: 항상 Authorization 헤더 붙이기 ---
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const url = (config.url || '').toLowerCase()
+
+  // 무토큰(쿠키 기반)으로 호출해야 하는 엔드포인트들
+  const authFree = [
+    '/auth/refresh',       // ★ 리프레시
+    '/auth/login',         // 로그인
+    '/auth/signup',        // 회원가입
+    '/auth/find-id', '/auth/find-password',
+    '/auth/verify',        // 필요 시: 코드 검증류
+  ]
+
+  // 일부 프록시 구성에서는 /api 접두사가 붙음 → 양쪽 모두 대응
+  const isAuthFree = authFree.some(p =>
+    url === p || url.startsWith(p) || url === `/api${p}` || url.startsWith(`/api${p}`)
+  )
+
+  if (isAuthFree) {
+    // [CHANGE] 의도치 않은 주입 방지
+    if (config.headers) {
+      delete (config.headers as any).Authorization   // ★ 제거
+    }
+    return config
+  }
+
+  // 그 외에는 평소처럼 액세스 토큰 주입
   const token = getAccessToken?.()
   if (token) {
     config.headers = config.headers || {}
@@ -27,11 +52,7 @@ let waitQueue: Array<(token: string | null) => void> = []
 
 async function doRefresh(): Promise<string | null> {
   try {
-    const resp = await axios.post(
-      '/auth/refresh',
-      {},
-      { baseURL, withCredentials: true }
-    )
+    const resp = await api.post('/auth/refresh', null /* no body */)
     const access = resp.data?.accessToken ?? resp.data?.access_token ?? null
     if (access) setAccessToken(access)
     return access
