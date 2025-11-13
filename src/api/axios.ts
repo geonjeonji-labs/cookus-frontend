@@ -7,7 +7,7 @@ const baseURL = ''
 
 // 우리 앱에서 쓰는 공용 axios 인스턴스
 const api = axios.create({
-  baseURL,
+  baseURL: '/api',
   withCredentials: true, // refresh 쿠키 등 포함
 })
 
