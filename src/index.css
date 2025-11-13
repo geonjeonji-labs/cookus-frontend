@@ -18,15 +18,23 @@ html, body, #root{ height:100% }
 body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font) }
 
 .app-shell{
+  --shell-pad:max(12px, min(4vw, 32px));
   min-height:100dvh;
-  display:grid; place-items:center;
-  padding:24px;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:var(--shell-pad);
+  box-sizing:border-box;
 }
 
 .app-frame{
   position:relative;
-  width:min(100%, 420px);
-  height:min(calc(100dvh - 48px), 860px);
+  width:min(420px, calc(100vw - var(--shell-pad)*2));
+  height:min(860px, calc(100dvh - var(--shell-pad)*2));
+  max-width:100%;
+  max-height:100%;
+  aspect-ratio: 420 / 860;
   background:var(--paper-bd);
   border:2px solid var(--paper-bd);
   border-radius:18px;
@@ -40,11 +48,14 @@ body{ margin:0; background:var(--bg); color:var(--ink); font-family:var(--font) 
 }
 
 @media (max-width: 520px){
-  .app-shell{ padding:0 }
-  .app-viewport{
-    width: min(100vw, var(--phone-w));
-    height: min(100dvh, var(--phone-h));
-    border-radius: var(--radius);
+  .app-shell{
+    --shell-pad:0px;
+    padding:0;
+  }
+  .app-frame{
+    width:100vw;
+    height:100dvh;
+    border-radius:0;
   }
 }
 
