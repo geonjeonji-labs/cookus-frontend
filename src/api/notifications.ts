@@ -4,7 +4,7 @@ import { getAccessToken } from './session'  // 토큰 꺼내오는 기존 헬퍼
 
 export type NotificationRow = {
   notification_id: number
-  user_id: string
+  id: string
   type: string
   related_id: number | null
   title: string

@@ -44,7 +44,7 @@ export default function CookTestPostModal({
     })()
   }, [eventId, postId, initial])
 
-  const isOwner = post && currentUserId && String(post.user_id) === String(currentUserId)
+  const isOwner = post && currentUserId && String(post.id) === String(currentUserId)
   const canModify = Boolean(isOwner && allowOwnerActions)
 
   const handleDelete = async () => {
@@ -93,7 +93,7 @@ export default function CookTestPostModal({
             )}
             <div className="feed-head">
               <div className="feed-title">{post.content_title}</div>
-              <div className="feed-meta">사용자 #{post.user_id} · {fmt(post.created_at)}</div>
+              <div className="feed-meta">사용자 #{post.id} · {fmt(post.created_at)}</div>
             </div>
             {images.map((src, idx) => (
               <img key={idx} src={src} alt="" className="feed-image" loading="lazy" />
@@ -137,4 +137,3 @@ function fmt(s: string) {
     return s
   }
 }
-

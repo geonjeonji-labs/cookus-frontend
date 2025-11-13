@@ -22,7 +22,7 @@ export type EventDetail = {
 export type CookPost = {
   post_id: number
   event_id: number
-  user_id: number
+  id: number
   user_name?: string
   content_title: string
   content_text: string

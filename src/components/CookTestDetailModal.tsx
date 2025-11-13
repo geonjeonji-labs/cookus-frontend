@@ -72,7 +72,7 @@ export default function CookTestDetailModal({
   }, [posts, sortOption])
 
   useEffect(() => {
-    const ids = Array.from(new Set(posts.map(p => String(p.user_id))))
+    const ids = Array.from(new Set(posts.map(p => String(p.id))))
     const missing = ids.filter(id => !(id in userBadgeMap))
     if (missing.length === 0) return
     let cancelled = false
@@ -110,7 +110,7 @@ export default function CookTestDetailModal({
     })
     const seen = new Set<string>()
     return sortedAll.filter((p) => {
-      const key = String(p.user_id)
+      const key = String(p.id)
       if (seen.has(key)) return false
       seen.add(key)
       return true
@@ -212,7 +212,7 @@ export default function CookTestDetailModal({
 
   const myPostCount = useMemo(() => {
     if (!userId) return 0
-    return allPosts.filter(p => String(p.user_id) === String(userId)).length
+    return allPosts.filter(p => String(p.id) === String(userId)).length
   }, [allPosts, userId])
 
   const hasReachedLimit = isLoggedIn && !!userId && myPostCount >= 3
@@ -278,7 +278,7 @@ export default function CookTestDetailModal({
   }
 
   const openUserPosts = (post: CookPost) => {
-    setUserPostsTarget({ userId: post.user_id, userName: post.user_name })
+    setUserPostsTarget({ userId: post.id, userName: post.user_name })
   }
 
   return (
@@ -294,7 +294,7 @@ export default function CookTestDetailModal({
                 {['silver', 'gold', 'bronze'].map((tier) => {
                   const rankNumber = tier === 'gold' ? 1 : tier === 'silver' ? 2 : 3
                   const group = podiumByRank.get(rankNumber) || []
-                  const label = group && group.length ? group.map(p => `#${p.user_id}`).join(', ') : '빈자리'
+                  const label = group && group.length ? group.map(p => `#${p.id}`).join(', ') : '빈자리'
                   const rankLabel = `${rankNumber}위`
                   return (
                     <div key={tier} className={`podium-tier podium-${tier}`}>
@@ -351,7 +351,7 @@ export default function CookTestDetailModal({
             {sortedPosts.map(p => {
               const liked = likedSet.has(p.post_id)
               const busy = pendingLikes.has(p.post_id)
-              const userIdKey = String(p.user_id)
+              const userIdKey = String(p.id)
               const userBadgeIdFromMap = userBadgeMap[userIdKey]
               const userBadgeMeta = userBadgeIdFromMap ? badgeMetaById[userBadgeIdFromMap] : undefined
               return (
@@ -369,7 +369,7 @@ export default function CookTestDetailModal({
                             <BadgeIcon code={userBadgeMeta.iconCode} earned size={20} />
                           </span>
                         )}
-                        {p.user_name ?? `사용자 #${p.user_id}`}
+                        {p.user_name ?? `사용자 #${p.id}`}
                       </button>
                       <span> · {fmt(p.created_at)}</span>
                     </div>
