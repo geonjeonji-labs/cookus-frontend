@@ -2,8 +2,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { getAccessToken, setAccessToken, clearAccessToken } from './session'
 
-// Vite 프록시를 쓰면 baseURL은 빈 문자열이어도 됨.
-const baseURL = ''
 
 // 우리 앱에서 쓰는 공용 axios 인스턴스
 const api = axios.create({
