@@ -386,7 +386,7 @@ export default function CookTestDetailModal({
                   )}
                   <div className="feed-actions">
                     <button className={`heart-btn ${liked ? 'on' : ''} ${busy ? 'pulse' : ''}`} onClick={() => toggleLike(p.post_id, liked)} aria-pressed={liked} disabled={busy || isEventClosed}>
-                      <span className="heart-icon" aria-hidden>{liked ? '♥' : '♡'}</span>
+                      <span className="heart-icon" aria-hidden>{liked ? '❤' : '♡'}</span>
                       <span className="heart-count">{p.likes}</span>
                     </button>
                   </div>
