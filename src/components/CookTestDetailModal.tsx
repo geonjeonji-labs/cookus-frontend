@@ -42,6 +42,7 @@ export default function CookTestDetailModal({
   const [filterView, setFilterView] = useState<FilterView>('all')
   const [showPosts, setShowPosts] = useState(true)
   const [sortOption, setSortOption] = useState<SortOption>('latest')
+  const [sortTouched, setSortTouched] = useState(false)
   const [userPostsTarget, setUserPostsTarget] = useState<{ userId: number; userName?: string } | null>(null)
 
   const isEventClosed = useMemo(() => {
@@ -102,19 +103,13 @@ export default function CookTestDetailModal({
     }
   }, [posts, userBadgeMap])
 
-  const uniquePodiumEntries = useMemo(() => {
+  const podiumEntries = useMemo(() => {
     if (!isEventClosed) return []
     const sortedAll = [...allPosts].sort((a, b) => {
       if (b.likes !== a.likes) return b.likes - a.likes
       return a.post_id - b.post_id
     })
-    const seen = new Set<string>()
-    return sortedAll.filter((p) => {
-      const key = String(p.id)
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+    return sortedAll
   }, [allPosts, isEventClosed])
 
   const podiumByRank = useMemo(() => {
@@ -122,21 +117,32 @@ export default function CookTestDetailModal({
     if (!isEventClosed) return map
     let currentRank = 1
     let index = 0
-    while (index < uniquePodiumEntries.length && currentRank <= 3) {
+    while (index < podiumEntries.length && currentRank <= 3) {
       let tieEnd = index + 1
       while (
-        tieEnd < uniquePodiumEntries.length &&
-        uniquePodiumEntries[tieEnd].likes === uniquePodiumEntries[index].likes
+        tieEnd < podiumEntries.length &&
+        podiumEntries[tieEnd].likes === podiumEntries[index].likes
       ) {
         tieEnd++
       }
-      map.set(currentRank, uniquePodiumEntries.slice(index, tieEnd))
+      map.set(currentRank, podiumEntries.slice(index, tieEnd))
       const tieSize = tieEnd - index
       currentRank += tieSize
       index = tieEnd
     }
     return map
-  }, [uniquePodiumEntries, isEventClosed])
+  }, [podiumEntries, isEventClosed])
+
+  useEffect(() => {
+    if (isEventClosed && !sortTouched && sortOption !== 'likes') {
+      setSortOption('likes')
+    }
+  }, [isEventClosed, sortOption, sortTouched])
+
+  const handleSortChange = (next: SortOption) => {
+    setSortTouched(true)
+    setSortOption(next)
+  }
 
   const loadPosts = async (view: FilterView) => {
     setError(null)
@@ -341,7 +347,7 @@ export default function CookTestDetailModal({
               </label>
               <label className="cooktest-view-select">
                 <span>정렬</span>
-                <select value={sortOption} onChange={e => setSortOption(e.target.value as SortOption)}>
+                <select value={sortOption} onChange={e => handleSortChange(e.target.value as SortOption)}>
                   <option value="latest">최신순</option>
                   <option value="likes">좋아요순</option>
                 </select>
