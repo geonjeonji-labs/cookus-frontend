@@ -9,7 +9,7 @@
 /* 모달 박스: 프레임 크기 이하로 고정 */
 .rec-modal{
   width:min(420px, 92%);
-  height:89%;
+  height:80%;
   overflow:auto;
   box-sizing:border-box;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 

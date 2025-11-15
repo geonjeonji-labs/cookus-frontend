@@ -11,6 +11,7 @@ type Props = {
   onLogout: () => void
   onAddClick: () => void
   onRecommendClick: () => void
+  onShowAllRecipes?: () => void
 }
 
 export default function Navigation({
@@ -21,6 +22,7 @@ export default function Navigation({
   onLogout,
   onAddClick,
   onRecommendClick,
+  onShowAllRecipes,
 }: Props) {
   const displayedBadgeId = user?.displayed_badge_id ?? null
   const displayedBadgeMeta = displayedBadgeId ? badgeMetaById[displayedBadgeId] : undefined
@@ -58,6 +60,9 @@ export default function Navigation({
       <div className="tab-sep-line" />
 
       <div className="header-actions">
+        {onShowAllRecipes && (
+          <button className="btn ghost" onClick={onShowAllRecipes}>모든 레시피</button>
+        )}
         <button className="btn" onClick={onAddClick}>재료 추가</button>
         <button className="btn primary" onClick={onRecommendClick}>레시피 추천받기</button>
       </div>

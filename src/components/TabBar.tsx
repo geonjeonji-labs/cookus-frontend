@@ -16,8 +16,6 @@ export default function TabBar({ current, onChange, tabs }: Props) {
         return '리포트'
       case 'cooktest':
         return '쿡테스트'
-      case 'nutrition':
-        return '영양관리'
       case 'mypage':
         return '마이페이지'
       case 'fridge':
@@ -73,21 +71,6 @@ export default function TabBar({ current, onChange, tabs }: Props) {
               <path d="M6 5H4v2a3 3 0 0 0 3 3" />
               <path d="M18 5h2v2a3 3 0 0 1-3 3" />
               <path d="M9 15h6v2a3 3 0 0 1-3 3 3 3 0 0 1-3-3v-2Z" />
-            </svg>
-          </span>
-          <span className="sr-only">{label(key)}</span>
-        </>
-      )
-    }
-
-    if (key === 'nutrition') {
-      return (
-        <>
-          <span className="tab-icon tab-icon--nutrition" aria-hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3.5c-2.9 0-5 2.1-5 5v7c0 2.9 2.1 5 5 5s5-2.1 5-5v-7c0-2.9-2.1-5-5-5Z" />
-              <path d="M7 12h10" />
-              <path d="M9 6.5h6" />
             </svg>
           </span>
           <span className="sr-only">{label(key)}</span>

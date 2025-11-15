@@ -15,12 +15,11 @@ import TabBar from './components/TabBar'
 
 import { authAPI } from './api/auth'
 import CookTest from './pages/CookTest'
-import Nutrition from './pages/Nutrition'
 import Notifications from './components/Notifications'
 import type { Recipe } from './api/recipe'
 
 export type User = { user_id: string; user_name: string; displayed_badge_id?: number | null }
-export type TabKey = 'fridge' | 'calendar' | 'dashboard' | 'cooktest' | 'nutrition' | 'mypage'
+export type TabKey = 'fridge' | 'calendar' | 'dashboard' | 'cooktest' | 'mypage'
 
 export default function App() {
   const [tab, setTab] = useState<TabKey>('fridge')
@@ -33,6 +32,7 @@ export default function App() {
   const [quickDetail, setQuickDetail] = useState<Recipe | null>(null)
   const [pendingRecipeIds, setPendingRecipeIds] = useState<number[]>([])
   const [confirmedRecipeIds, setConfirmedRecipeIds] = useState<number[]>([])
+  const [calendarFullKey, setCalendarFullKey] = useState(0)
 
   const refreshUser = useCallback(async () => {
     try {
@@ -150,17 +150,37 @@ export default function App() {
           onLogout={handleLogout}
           onAddClick={openAddAction}
           onRecommendClick={openRecommendAction}
+          onShowAllRecipes={() => {
+            if (!isLoggedIn) {
+              requireLogin()
+              return
+            }
+            if (tab !== 'calendar') setTab('calendar')
+            setCalendarFullKey(prev => prev + 1)
+          }}
         />
 
-        {isLoggedIn && <Notifications isLoggedIn={isLoggedIn} />}
+        {isLoggedIn ? (
+          <Notifications isLoggedIn={isLoggedIn} />
+        ) : (
+          <div className="noti noti-home">
+            <button className="bell" onClick={() => setTab('fridge')} title="홈으로 이동">
+              🏠
+            </button>
+          </div>
+        )}
 
         <main className={`app-main ${tab === 'dashboard' ? 'app-main--dashboard' : ''}`}>
           {tab === 'fridge' && (
-            <Fridge isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} />
+            <Fridge isLoggedIn={isLoggedIn} />
           )}
 
           {tab === 'calendar' && (
-            <Calendar isLoggedIn={isLoggedIn} userName={user?.user_name} />
+            <Calendar
+              isLoggedIn={isLoggedIn}
+              userName={user?.user_name}
+              fullRequestKey={calendarFullKey}
+            />
           )}
 
           {tab === 'cooktest' && (
@@ -169,10 +189,6 @@ export default function App() {
 
           {tab === 'dashboard' && (
             <Dashboard isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} />
-          )}
-
-          {tab === 'nutrition' && (
-            <Nutrition isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} userName={user?.user_name} />
           )}
 
           {tab === 'mypage' && (
@@ -188,7 +204,7 @@ export default function App() {
         <TabBar
           current={tab}
           onChange={setTab}
-          tabs={['calendar', 'dashboard', 'cooktest', 'nutrition', 'mypage']}
+          tabs={['calendar', 'dashboard', 'cooktest', 'mypage']}
         />
       </div>
 

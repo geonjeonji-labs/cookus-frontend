@@ -1,58 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { recipeAPI, type SelectedRecipesResponse } from '../api/recipe'
-import RecipeDetailModal from '../components/RecipeDetailModal'
 import type { Recipe } from '../api/recipe'
+import RecipeDetailModal from '../components/RecipeDetailModal'
+import AddSupplementPlanModal from '../components/AddSupplementPlanModal'
+import { nutritionAPI, type DayPlan, type DayStatus, type SupplementPlan } from '../api/nutrition'
 import chefBattery from '../assets/요리사 건전지.png'
 import './Calendar.css'
 
-type CalendarProps = { isLoggedIn: boolean; userName?: string }
+type CalendarProps = { isLoggedIn: boolean; userName?: string; fullRequestKey?: number }
 type Row = SelectedRecipesResponse['recipes'][number]
 
-function ymd(d: Date) {
-  if (!(d instanceof Date) || isNaN(d.getTime())) return ''
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${d.getFullYear()}-${m}-${day}`
-}
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
-function toLocalDate(s?: string | null): Date | null {
-  if (!s) return null
-  const d = new Date(s)
-  if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  const t = String(s).trim().slice(0, 10).replace(/[./]/g, '-')
-  const m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
-  if (!m) return null
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-}
-
-function firstDayOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1) }
-function lastDayOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0) }
-
-function getCalendarGrid(base: Date) {
-  const first = firstDayOfMonth(base)
-  const last = lastDayOfMonth(base)
-  const firstWeekdayMonStart = ((first.getDay() + 6) % 7)
-  const daysInMonth = last.getDate()
-
-  const cells: Date[] = []
-  for (let i = 0; i < firstWeekdayMonStart; i++) {
-    const d = new Date(first)
-    d.setDate(first.getDate() - (firstWeekdayMonStart - i))
-    cells.push(d)
-  }
-  for (let i = 1; i <= daysInMonth; i++) {
-    cells.push(new Date(base.getFullYear(), base.getMonth(), i))
-  }
-  while (cells.length < 42) {
-    const d = new Date(cells[cells.length - 1])
-    d.setDate(d.getDate() + 1)
-    cells.push(d)
-  }
-  return cells
-}
-
-export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
+export default function Calendar({ isLoggedIn, userName, fullRequestKey }: CalendarProps) {
   const [data, setData] = useState<SelectedRecipesResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,34 +21,41 @@ export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
   const [detail, setDetail] = useState<Recipe | null>(null)
   const [detailCooked, setDetailCooked] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
-  // 인앱 토스트 메시지 (오버레이)
   const [toast, setToast] = useState<string | null>(null)
-  const [toastKind, setToastKind] = useState<'ok'|'warn'>('ok')
-  const showToast = (msg: string, kind: 'ok'|'warn' = 'ok', ms = 1800) => {
-    setToastKind(kind)
-    setToast(msg)
-    window.setTimeout(() => setToast(null), ms)
-  }
-  // 삭제 확인 모달 상태
+  const [toastKind, setToastKind] = useState<'ok' | 'warn'>('ok')
   const [confirmRow, setConfirmRow] = useState<Row | null>(null)
   const [showFull, setShowFull] = useState(false)
   const [togglingId, setTogglingId] = useState<number | null>(null)
-
-  // 삭제 진행 중 표시(선택된 레코드 id)
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  const refetch = async () => {
-    setLoading(true); setError(null)
+  const [selectedDay, setSelectedDay] = useState<string | null>(() => ymd(new Date()))
+  const [dailyPlans, setDailyPlans] = useState<DayPlan[] | null>(null)
+  const [dailyLoading, setDailyLoading] = useState(false)
+  const [nutritionStatus, setNutritionStatus] = useState<Map<string, DayStatus>>(new Map())
+  const [showPlanModal, setShowPlanModal] = useState(false)
+  const [editPlan, setEditPlan] = useState<SupplementPlan | null>(null)
+
+  const refetch = useCallback(async () => {
+    if (!isLoggedIn) {
+      setData(null)
+      return
+    }
+    setLoading(true)
+    setError(null)
     try {
       const res = await recipeAPI.getSelected()
       setData(res)
     } catch (e) {
       console.error('[Calendar] getSelected failed:', e)
-      setError('기록을 불러오지 못했습니다.')
+      setError('기록을 불러오지 못했어요.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    refetch()
+  }, [refetch])
 
   const openDetailByRecommend = async (recommendId: number, cooked?: boolean) => {
     setDetailLoading(true)
@@ -105,110 +73,146 @@ export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
     await refetch()
   }
 
-  const [month, setMonth] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1)
-  })
-  const [selectedDay, setSelectedDay] = useState<string | null>(() => ymd(new Date()))
-
-  useEffect(() => {
-    let alive = true
-    const run = async () => {
-      if (!isLoggedIn) { setData(null); return }
-      setLoading(true); setError(null)
-      try {
-        const res = await recipeAPI.getSelected()
-        if (alive) setData(res)
-      } catch (e) {
-        console.error('[Calendar] getSelected failed:', e)
-        if (alive) setError('기록을 불러오지 못했습니다.')
-      } finally {
-        if (alive) setLoading(false)
-      }
-    }
-    run()
-    return () => { alive = false }
-  }, [isLoggedIn])
-
-  const monthBuckets = useMemo(() => {
-    const map = new Map<number, Row[]>()
-    const yy = month.getFullYear()
-    const mm = month.getMonth()
-    for (const r of data?.recipes ?? []) {
-      const d = toLocalDate(r.selected_date)
+  const recipeByDay = useMemo(() => {
+    const map = new Map<string, Row[]>()
+    for (const row of data?.recipes ?? []) {
+      const d = toLocalDate(row.selected_date)
       if (!d) continue
-      if (d.getFullYear() !== yy || d.getMonth() !== mm) continue
-      const day = d.getDate()
-      const arr = map.get(day) ?? []
-      arr.push(r)
-      map.set(day, arr)
+      const key = ymd(d)
+      const list = map.get(key) ?? []
+      list.push(row)
+      map.set(key, list)
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => (a.selected_id ?? 0) - (b.selected_id ?? 0))
     }
     return map
-  }, [data, month])
+  }, [data])
 
-  const cells = useMemo(() => getCalendarGrid(month), [month])
   const selectedRecipes = useMemo(() => {
     if (!selectedDay) return []
-    const d = toLocalDate(selectedDay)
-    if (!d) return []
-    if (d.getFullYear() !== month.getFullYear() || d.getMonth() !== month.getMonth()) return []
-    return monthBuckets.get(d.getDate()) ?? []
-  }, [selectedDay, month, monthBuckets])
+    return recipeByDay.get(selectedDay) ?? []
+  }, [recipeByDay, selectedDay])
 
   const fullHistoryGroups = useMemo(() => {
-    type Group = {
-      key: string
-      label: string
-      year: number
-      month: number
-      items: Array<{ row: Row; date: Date; dateLabel: string }>
-    }
+    type Group = { key: string; label: string; items: Array<{ row: Row; dateLabel: string; date: Date }> }
     const groups = new Map<string, Group>()
     for (const row of data?.recipes ?? []) {
       const d = toLocalDate(row.selected_date)
       if (!d) continue
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       const label = `${d.getFullYear()}년 ${d.getMonth() + 1}월`
-      const existing = groups.get(key)
-      if (existing) {
-        existing.items.push({ row, date: d, dateLabel: ymd(d) })
-      } else {
-        groups.set(key, {
-          key,
-          label,
-          year: d.getFullYear(),
-          month: d.getMonth(),
-          items: [{ row, date: d, dateLabel: ymd(d) }]
-        })
-      }
+      const group = groups.get(key) ?? { key, label, items: [] }
+      group.items.push({ row, dateLabel: ymd(d), date: d })
+      groups.set(key, group)
     }
     const arr = Array.from(groups.values())
-    arr.sort((a, b) => {
-      if (a.year !== b.year) return b.year - a.year
-      return b.month - a.month
-    })
-    arr.forEach(group => {
-      group.items.sort((a, b) => b.date.getTime() - a.date.getTime())
-    })
+    arr.sort((a, b) => (a.key > b.key ? -1 : 1))
+    arr.forEach(group => group.items.sort((a, b) => b.date.getTime() - a.date.getTime()))
     return arr
   }, [data])
 
   const now = new Date()
   const todayStr = ymd(now)
-  const todayAnchor = useMemo(() => {
-    const base = new Date()
-    return new Date(base.getFullYear(), base.getMonth(), base.getDate())
-  }, [todayStr])
-  const monthLabel = `${month.getFullYear()}년 ${month.getMonth() + 1}월`
-  const isSameMonth = (d: Date) =>
-    d.getFullYear() === month.getFullYear() && d.getMonth() === month.getMonth()
-  const isFutureSelected = useMemo(() => {
-    if (!selectedDay) return false
+  const todayAnchor = useMemo(() => new Date(now.getFullYear(), now.getMonth(), now.getDate()), [todayStr])
+
+  const rangeStart = useMemo(() => {
+    const base = new Date(todayAnchor.getFullYear(), todayAnchor.getMonth(), todayAnchor.getDate())
+    const weekday = (base.getDay() + 6) % 7
+    base.setDate(base.getDate() - (weekday + 7))
+    return base
+  }, [todayAnchor])
+
+  const rangeDays = useMemo(() => {
+    const arr: Date[] = []
+    for (let i = 0; i < 21; i++) {
+      const d = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + i)
+      arr.push(d)
+    }
+    return arr
+  }, [rangeStart])
+
+  const rangeEndMs = useMemo(() => {
+    if (rangeDays.length === 0) return rangeStart.getTime()
+    const end = rangeDays[rangeDays.length - 1]
+    return new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime()
+  }, [rangeDays, rangeStart])
+
+  useEffect(() => {
+    if (!selectedDay) return
     const d = toLocalDate(selectedDay)
-    if (!d) return false
-    const target = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-    return target.getTime() > todayAnchor.getTime()
-  }, [selectedDay, todayAnchor])
+    if (!d) return
+    const target = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    if (target < rangeStart.getTime() || target > rangeEndMs) {
+      setSelectedDay(todayStr)
+    }
+  }, [rangeEndMs, rangeStart, selectedDay, todayStr])
+
+  const nutritionMonths = useMemo(() => {
+    const set = new Set<string>()
+    for (const d of rangeDays) set.add(ym(d))
+    return Array.from(set)
+  }, [rangeDays])
+
+  const refreshNutritionStatus = useCallback(async () => {
+    if (!isLoggedIn) {
+      setNutritionStatus(new Map())
+      return
+    }
+    if (nutritionMonths.length === 0) return
+    try {
+      const lists = await Promise.all(nutritionMonths.map(m => nutritionAPI.getMonthStatus(m)))
+      const map = new Map<string, DayStatus>()
+      for (const rows of lists) {
+        for (const row of rows) map.set(row.date, row)
+      }
+      setNutritionStatus(map)
+    } catch (err) {
+      console.error('[Calendar] getMonthStatus failed:', err)
+    }
+  }, [isLoggedIn, nutritionMonths])
+
+  const loadDaily = useCallback(async (dateStr: string) => {
+    if (!isLoggedIn) {
+      setDailyPlans(null)
+      return
+    }
+    setDailyLoading(true)
+    try {
+      const rows = await nutritionAPI.getDaily(dateStr)
+      setDailyPlans(rows)
+    } catch (err) {
+      console.error('[Calendar] getDaily failed:', err)
+      setDailyPlans([])
+    } finally {
+      setDailyLoading(false)
+    }
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setNutritionStatus(new Map())
+      setDailyPlans(null)
+      return
+    }
+    refreshNutritionStatus()
+  }, [isLoggedIn, refreshNutritionStatus])
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setDailyPlans(null)
+      return
+    }
+    if (!selectedDay) return
+    loadDaily(selectedDay)
+  }, [isLoggedIn, loadDaily, selectedDay])
+
+  const showToastMessage = (msg: string, kind: 'ok' | 'warn' = 'ok', ms = 1800) => {
+    setToastKind(kind)
+    setToast(msg)
+    window.setTimeout(() => setToast(null), ms)
+  }
+
   const checkedDaySet = useMemo(() => {
     const set = new Set<string>()
     for (const row of data?.recipes ?? []) {
@@ -219,12 +223,13 @@ export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
     }
     return set
   }, [data])
+
   const streakCount = useMemo(() => {
     if (!selectedDay) return 0
     const base = toLocalDate(selectedDay)
     if (!base) return 0
-    let cnt = 0
     const cursor = new Date(base.getFullYear(), base.getMonth(), base.getDate())
+    let cnt = 0
     while (true) {
       const key = ymd(cursor)
       if (!checkedDaySet.has(key)) break
@@ -232,44 +237,35 @@ export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
       cursor.setDate(cursor.getDate() - 1)
     }
     return cnt
-  }, [selectedDay, checkedDaySet])
+  }, [checkedDaySet, selectedDay])
+
   const nickname = useMemo(() => userName?.trim() || '셰프', [userName])
   const motivation = useMemo(() => {
     if (!selectedDay) return null
-    if (isFutureSelected) {
-      return {
-        text: '또 오실거죠? 요리를 기대하고 있을게요!',
-        tone: 'future' as const,
-        toastKind: 'ok' as const
-      }
+    const selectedFuture = isFutureDate(selectedDay, todayAnchor)
+    if (selectedFuture) {
+      return { text: '앞으로도 멋진 기록 기대할게요! 예약만 해두면 OK!', tone: 'future' as const, toastKind: 'ok' as const }
     }
     const isToday = selectedDay === todayStr
     if (selectedRecipes.length === 0) {
       const emptyDayLabel = isToday ? '오늘은' : `${selectedDay}에는`
-      return {
-        text: `${emptyDayLabel} 저장된 요리가 없어요! 추천을 받아서 선택해보세요!`,
-        tone: 'empty' as const,
-        toastKind: 'warn' as const
-      }
+      return { text: `${emptyDayLabel} 아직 레시피가 없어요. 추천받아 살짝 채워볼까요?`, tone: 'empty' as const, toastKind: 'warn' as const }
     }
-    const checkedCount = selectedRecipes.filter((r) => (r.action ?? 0) === 1).length
+    const checkedCount = selectedRecipes.filter(row => (row.action ?? 0) === 1).length
     if (checkedCount === 0) {
       return {
         text: isToday
-          ? `오늘도 요리하는 멋진 ${nickname}님을 기록해주세요!`
-          : `그날에도 요리하는 멋진 ${nickname}님을 기록해주세요!`,
+          ? `오늘도 멋진 ${nickname}님의 한 끼를 기록해보세요!`
+          : `그날의 기록도 채워보면 어떨까요?`,
         tone: 'encourage' as const,
-        toastKind: 'ok' as const
+        toastKind: 'ok' as const,
       }
     }
     const streak = streakCount > 0 ? streakCount : 1
     const prefix = streak >= 10 ? '대단해요! ' : ''
-    return {
-      text: `${prefix}🔥 ${streak}일 연속 요리중이에요! 꾸준히 파이팅!!!`,
-      tone: 'celebrate' as const,
-      toastKind: 'ok' as const
-    }
-  }, [nickname, selectedDay, selectedRecipes, streakCount, todayStr, isFutureSelected])
+    return { text: `${prefix}지금 ${streak}일째 레시피 기록 중! 계속 이어가요!`, tone: 'celebrate' as const, toastKind: 'ok' as const }
+  }, [nickname, selectedDay, selectedRecipes, streakCount, todayAnchor, todayStr])
+
   const lastMotivationKey = useRef<string | null>(null)
   useEffect(() => {
     if (!motivation || !isLoggedIn || !selectedDay || loading) return
@@ -277,206 +273,353 @@ export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
     const key = `${selectedDay}-${motivation.text}`
     if (lastMotivationKey.current === key) return
     lastMotivationKey.current = key
-    showToast(motivation.text, motivation.toastKind, motivation.tone === 'celebrate' ? 2800 : 2200)
-  }, [motivation, isLoggedIn, selectedDay, loading, todayStr])
+    showToastMessage(motivation.text, motivation.toastKind, motivation.tone === 'celebrate' ? 2800 : 2200)
+  }, [isLoggedIn, loading, motivation, selectedDay, todayStr])
 
-  const goPrev = () => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))
-  const goNext = () => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))
-  const goToday = () => {
-    const base = new Date(now.getFullYear(), now.getMonth(), 1)
-    setMonth(base)
-    setSelectedDay(todayStr)
+  const dailySummary = useMemo(() => {
+    if (!dailyPlans || dailyPlans.length === 0) {
+      return { total: 0, taken: 0, missingPlans: [] as DayPlan[], missingSlots: [] as string[] }
+    }
+    const missingPlans = dailyPlans.filter(plan => !plan.taken)
+    const missingSlots = Array.from(new Set(missingPlans.map(plan => slotLabel(plan.time_slot))))
+    return {
+      total: dailyPlans.length,
+      taken: dailyPlans.filter(plan => plan.taken).length,
+      missingPlans,
+      missingSlots,
+    }
+  }, [dailyPlans])
+
+  const nutritionMotivation = useMemo(() => {
+    if (!selectedDay) return null
+    if (isFutureDate(selectedDay, todayAnchor)) {
+      return { tone: 'future' as const, text: '미리 챙기는 루틴 최고! 알림 맞춰 두셨죠?' }
+    }
+    if (!dailyPlans || dailyPlans.length === 0) {
+      return { tone: 'empty' as const, text: '아직 영양제 계획이 없어요. 루틴을 만들어보면 어떨까요?' }
+    }
+    const checked = dailySummary.taken
+    const total = dailySummary.total
+    if (checked === 0) {
+      const missingList = dailySummary.missingSlots.join(', ') || '아침'
+      return { tone: 'warn' as const, text: `${missingList} 영양제를 잊지 말고 챙겨요!` }
+    }
+    if (checked === total) {
+      return { tone: 'celebrate' as const, text: '오늘의 영양 루틴 완료! 완벽해요!' }
+    }
+    const missingList = dailySummary.missingSlots.join(', ')
+    return { tone: 'encourage' as const, text: `${missingList}만 더 챙기면 오늘도 성공!` }
+  }, [dailyPlans, dailySummary, selectedDay, todayAnchor])
+
+  const goSelectDay = (dayStr: string) => {
+    setSelectedDay(dayStr)
   }
 
-  // 선택 항목 삭제
-  const deleteSelected = async (r: Row) => {
+  const deleteSelected = async (row: Row) => {
     try {
-      setDeletingId(r.selected_id)
-      await recipeAPI.deleteSelected(r.selected_id) // api/recipe.ts에 구현 필요
-      // 상세 모달이 해당 레시피를 보고 있었다면 닫기
-      if (detail?.recipe_id === r.recipe_id) setDetail(null)
+      setDeletingId(row.selected_id)
+      await recipeAPI.deleteSelected(row.selected_id)
+      if (detail?.recipe_id === row.recipe_id) setDetail(null)
       await refetch()
-      // 인앱 알림 (오버레이)
-      showToast('기록을 삭제했어요.', 'ok')
+      showToastMessage('기록이 삭제되었어요.', 'ok')
     } catch (e) {
       console.error('[Calendar] deleteSelected failed:', e)
-      showToast('삭제에 실패했어요. 잠시 후 다시 시도해 주세요.', 'warn', 2200)
+      showToastMessage('삭제에 실패했어요. 잠시 후 다시 시도해주세요.', 'warn', 2200)
     } finally {
       setDeletingId(null)
     }
   }
 
-  // action 토글
-  const toggleAction = async (r: Row) => {
-    const next = (r.action ?? 0) === 1 ? 0 : 1
+  const toggleAction = async (row: Row) => {
+    const next = (row.action ?? 0) === 1 ? 0 : 1
     try {
-      setTogglingId(r.selected_id)
-      await recipeAPI.setSelectedAction(r.selected_id, next as 0|1)
+      setTogglingId(row.selected_id)
+      await recipeAPI.setSelectedAction(row.selected_id, next as 0 | 1)
       await refetch()
-      showToast(next === 1 ? '체크했어요.' : '체크 해제했어요.', 'ok')
+      showToastMessage(next === 1 ? '체크했어요!' : '체크를 해제했어요.', 'ok')
     } catch (e) {
       console.error('[Calendar] toggleAction failed:', e)
-      showToast('변경에 실패했어요.', 'warn', 2200)
+      showToastMessage('변경에 실패했어요.', 'warn', 2200)
     } finally {
       setTogglingId(null)
     }
   }
 
+  const lastFullKey = useRef(fullRequestKey)
+  useEffect(() => {
+    if (fullRequestKey === undefined) return
+    if (lastFullKey.current === fullRequestKey) return
+    lastFullKey.current = fullRequestKey
+    if (isLoggedIn) setShowFull(true)
+  }, [fullRequestKey, isLoggedIn])
+
+  const requestPlanModal = (plan?: SupplementPlan) => {
+    if (!isLoggedIn) return
+    setEditPlan(plan ?? null)
+    setShowPlanModal(true)
+  }
+
+  const handlePlanSaved = async () => {
+    setShowPlanModal(false)
+    setEditPlan(null)
+    await refreshNutritionStatus()
+    if (selectedDay) await loadDaily(selectedDay)
+  }
+
+  const handlePlanModalClose = () => {
+    setShowPlanModal(false)
+    setEditPlan(null)
+  }
+
+  const handleDeletePlan = async (planId: number) => {
+    if (!selectedDay) return
+    try {
+      await nutritionAPI.deletePlan(planId)
+      await refreshNutritionStatus()
+      await loadDaily(selectedDay)
+      showToastMessage('영양제 계획을 삭제했어요.', 'ok')
+    } catch (err) {
+      console.error('[Calendar] delete plan failed:', err)
+      showToastMessage('삭제하지 못했어요.', 'warn')
+    }
+  }
+
+  const handleTogglePlan = async (plan: DayPlan) => {
+    if (!selectedDay || isFutureDate(selectedDay, todayAnchor)) return
+    try {
+      setDailyPlans(prev => prev ? prev.map(p => (p.plan_id === plan.plan_id ? { ...p, taken: !plan.taken } : p)) : prev)
+      await nutritionAPI.setTaken(plan.plan_id, selectedDay, !plan.taken)
+      await refreshNutritionStatus()
+      await loadDaily(selectedDay)
+    } catch (err) {
+      console.error('[Calendar] setTaken failed:', err)
+      showToastMessage('체크를 바꾸지 못했어요.', 'warn')
+    }
+  }
+
   return (
     <section className="app-tab cal">
-      <div className="card cal-card">
-        <div className="cal-header">
-          <h2 className="title">요리 기록</h2>
-          <div className="cal-controls">
-            <button className="btn ghost" onClick={goPrev} aria-label="이전 달">‹</button>
-            <div className="month-label">{monthLabel}</div>
-            <button className="btn ghost" onClick={goNext} aria-label="다음 달">›</button>
-            <button className="btn" onClick={goToday}>오늘</button>
-          </div>
+      {toast && (
+        <div className={`cal-toast ${toastKind}`} role="status">
+          {toast}
         </div>
+      )}
 
-        
-
-        {!isLoggedIn && <div className="muted">로그인하면 기록을 볼 수 있어요.</div>}
-        {isLoggedIn && loading && <div className="muted">불러오는 중…</div>}
-        {isLoggedIn && error && <div className="error">{error}</div>}
-
-        {isLoggedIn && !loading && !error && (
-          <>
-            {/* 캘린더 */}
-            <div className="calendar">
-              <div className="week-head">
-                {['월','화','수','목','금','토','일'].map((w) => (
-                  <div key={w} className="cell head">{w}</div>
-                ))}
-              </div>
-              <div className="weeks">
-                {cells.map((d, i) => {
-                  const dayStr = ymd(d)
-                  const inMonth = isSameMonth(d)
-                  const dayRows = inMonth ? (monthBuckets.get(d.getDate()) ?? []) : []
-                  const count = dayRows.length
-                  const hasCooked = dayRows.some((row) => (row.action ?? 0) === 1)
-
-                  const classes = [
-                    'cell','day',
-                    inMonth ? 'cur' : 'dim',
-                    dayStr === todayStr ? 'today' : '',
-                    count > 0 ? 'has' : '',
-                    selectedDay === dayStr ? 'sel' : ''
-                  ].join(' ').trim()
-
-                  return (
-                    <button
-                      key={`${d.getTime()}-${i}`}
-                      className={classes}
-                      onClick={() => { if (!inMonth) { setMonth(new Date(d.getFullYear(), d.getMonth(), 1)) } setSelectedDay(dayStr) }}
-                      title={count > 0 ? `${count}개 기록` : undefined}
-                    >
-                      <span className="dnum">{d.getDate()}</span>
-                      {count > 0 && (
-                        <span className={`dot ${hasCooked ? 'dot--cooked' : ''}`} aria-hidden />
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+      <div className="cal-layout">
+        <div className="cal-panel">
+          <div className="card cal-card">
+            <div className="cal-header">
+              <h2 className="title">나의 캘린더</h2>
             </div>
 
-            {motivation && !loading && (
-              <div className={`cal-note cal-note--${motivation.tone}`}>
-                <img src={chefBattery} alt="" aria-hidden className="cal-note__avatar" />
-                <div className="cal-note__bubble">
-                  <span className="cal-note__text">{motivation.text}</span>
-                </div>
-              </div>
-            )}
+            {!isLoggedIn && <div className="muted">로그인 후 레시피 및 영양 루틴을 확인할 수 있어요.</div>}
+            {isLoggedIn && loading && <div className="muted">불러오는 중...</div>}
+            {isLoggedIn && error && <div className="error">{error}</div>}
 
-            {/* 선택 날짜 상세 */}
-            {selectedDay && (
-              <div className="day-detail">
-                <div className="day-head">
-                  <span>{selectedDay}</span>
-                  <div className="head-actions">
-                    <button className="btn sm" onClick={()=> setShowFull(true)} title="전체 보기">모든 레시피</button>
+            {isLoggedIn && !loading && !error && (
+              <>
+                <div className="calendar calendar--trimmed">
+                  <div className="week-head">
+                    {WEEKDAY_LABELS.map(label => (
+                      <div key={label} className="cell head">{label}</div>
+                    ))}
+                  </div>
+                  <div className="weeks weeks--trimmed">
+                    {rangeDays.map((day, idx) => {
+                      const dayStr = ymd(day)
+                      const recipes = recipeByDay.get(dayStr) ?? []
+                      const hasCooked = recipes.some(row => (row.action ?? 0) === 1)
+                      const stat = nutritionStatus.get(dayStr)
+                      const info: string[] = []
+                      if (recipes.length > 0) info.push(`레시피 ${recipes.length}개`)
+                      if (stat) info.push(`영양제 ${stat.taken}/${stat.total}`)
+                      const title = info.length ? info.join(' / ') : undefined
+                      const isFuture = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime() > todayAnchor.getTime()
+                      const nutColor = stat ? dotColor(stat, isFuture) : null
+                      const classes = [
+                        'cell',
+                        'day',
+                        dayStr === todayStr ? 'today' : '',
+                        selectedDay === dayStr ? 'sel' : '',
+                        recipes.length > 0 || stat ? 'has' : '',
+                      ].join(' ').trim()
+                      return (
+                        <button
+                          key={`${dayStr}-${idx}`}
+                          className={classes}
+                          onClick={() => goSelectDay(dayStr)}
+                          title={title}
+                        >
+                          <span className="dnum">{day.getDate()}</span>
+                          <span className="dots">
+                            {recipes.length > 0 && (
+                              hasCooked ? (
+                                <span className="dot dot--cooked" aria-hidden />
+                              ) : (
+                                <span className="dot dot--recipe" aria-hidden />
+                              )
+                            )}
+                            {nutColor && (
+                              <span
+                                className="dot dot--nut"
+                                aria-hidden
+                                style={{ background: nutColor }}
+                                title={title}
+                              />
+                            )}
+                          </span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
-                <div className="day-body">
-                  {selectedRecipes.length === 0 ? (
-                    <div className="muted small">해당 날에는 아직 기록이 없어요.</div>
-                  ) : (
-                    <ul className="list">
-                      {selectedRecipes.map((r) => (
-                        <li key={r.selected_id} className={`row ${r.action === 1 ? 'done' : ''}`}>
-                          <button
-                            className={`btn check sm ${r.action === 1 ? 'active' : ''}`}
-                            onClick={() => toggleAction(r)}
-                            disabled={togglingId === r.selected_id}
-                            title={r.action === 1 ? '체크 해제' : '체크'}
-                          >
-                            {r.action === 1 ? '☑' : '☐'}
-                          </button>
-                          <div className="title clamp-1">{r.recipe_nm_ko}</div>
-                          <div className="actions" style={{ display:'flex', gap:12 }}>
-                            <button className="btn sm" onClick={() => openDetailByRecommend(r.recommend_id, r.action === 1)}>
-                              자세히 보기
-                            </button>
-                            <button
-                              className="btn danger outline sm"
-                              onClick={() => setConfirmRow(r)}
-                              disabled={deletingId === r.selected_id}
-                              aria-label="삭제"
-                              title="삭제"
-                            >
-                              {deletingId === r.selected_id ? '삭제 중…' : '×'}
-                            </button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+              </>
             )}
+          </div>
 
-            {!selectedDay && (data?.count ?? 0) === 0 && (
-              <div className="empty">아직 기록이 없습니다. 레시피를 선택해 보세요!</div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* 토스트 오버레이 (앱 프레임 최상단에 렌더) */}
-      {toast && typeof document !== 'undefined' && document.querySelector('.app-tab') && (
-        createPortal(
-          <div className={`cal-toast ${toastKind}`}>{toast}</div>,
-          document.querySelector('.app-tab') as Element
-        )
-      )}
-
-      {/* 삭제 확인 오버레이 */}
-      {confirmRow && typeof document !== 'undefined' && document.querySelector('.app-tab') && (
-        createPortal(
-          <div className="cal-overlay" onClick={() => setConfirmRow(null)}>
-            <div className="cal-confirm" onClick={(e) => e.stopPropagation()}>
-              <div className="cal-confirm-title">이 기록을 삭제할까요?</div>
-              <div className="cal-confirm-meta clamp-1">{confirmRow.recipe_nm_ko}</div>
-              <div className="cal-confirm-actions">
-                <button className="btn" onClick={() => setConfirmRow(null)}>취소</button>
-                <button
-                  className="btn primary"
-                  onClick={async () => { const r = confirmRow; setConfirmRow(null); await deleteSelected(r!); }}
-                >
-                  삭제
-                </button>
+          {isLoggedIn && motivation && (
+            <div className={`cal-note cal-note--${motivation.tone}`}>
+              <img src={chefBattery} alt="" aria-hidden className="cal-note__avatar" />
+              <div className="cal-note__bubble">
+                <span className="cal-note__text">{motivation.text}</span>
               </div>
             </div>
-          </div>,
-          document.querySelector('.app-tab') as Element
-        )
+          )}
+          {isLoggedIn && selectedDay && nutritionMotivation && (
+            <div className={`nut-note nut-note--${nutritionMotivation.tone}`}>
+              <div className="nut-note__bubble">
+                <span className="nut-note__text">{nutritionMotivation.text}</span>
+              </div>
+              <img src={chefBattery} alt="" aria-hidden className="nut-note__avatar" />
+            </div>
+          )}
+
+          {isLoggedIn && (
+            <div className="combo-card">
+              <div className="combo-head">
+                <span>{selectedDay || '날짜 선택'}</span>
+                <div className="head-actions">
+                  <button className="btn" onClick={() => requestPlanModal()} disabled={!isLoggedIn}>
+                    영양제 등록
+                  </button>
+                </div>
+              </div>
+
+              <div className="combo-section combo-section--recipes">
+                {(!selectedDay || selectedRecipes.length === 0) && (
+                  <div className="muted small">해당 날짜에 기록된 레시피가 아직 없어요.</div>
+                )}
+                {selectedDay && selectedRecipes.length > 0 && (
+                  <ul className="day-body">
+                    {selectedRecipes.map(row => (
+                      <li key={row.selected_id} className={`row ${row.action === 1 ? 'done' : ''}`}>
+                        <button
+                          className={`btn check sm ${row.action === 1 ? 'active' : ''}`}
+                          onClick={() => toggleAction(row)}
+                          disabled={togglingId === row.selected_id}
+                          title={row.action === 1 ? '체크 해제' : '체크'}
+                        >
+                          {row.action === 1 ? '✓' : '□'}
+                        </button>
+                        <div className="title clamp-1">{row.recipe_nm_ko}</div>
+                        <div className="actions" style={{ display: 'flex', gap: 12 }}>
+                          <button className="btn sm" onClick={() => openDetailByRecommend(row.recommend_id, row.action === 1)}>
+                            자세히 보기
+                          </button>
+                          <button
+                            className="btn danger outline sm"
+                            onClick={() => setConfirmRow(row)}
+                            disabled={deletingId === row.selected_id}
+                            aria-label="삭제"
+                          >
+                            {deletingId === row.selected_id ? '...' : '×'}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="combo-section combo-section--checks">
+                {!selectedDay && <div className="muted">날짜를 선택해주세요.</div>}
+                {selectedDay && (
+                  <div className="check-list-wrap">
+                    {dailyLoading && <div className="muted">불러오는 중...</div>}
+                    {!dailyLoading && (
+                      <div className="check-list">
+                        {(dailyPlans ?? []).map(plan => (
+                          <div
+                            key={plan.plan_id}
+                            className={`check-item ${plan.taken ? 'on' : ''} ${isFutureDate(selectedDay, todayAnchor) ? 'disabled' : ''}`}
+                          >
+                            <div className="info">
+                              <div className="name">{plan.supplement_name}</div>
+                              <div className="slot">{plan.time_slot}</div>
+                            </div>
+                            <button
+                              className={`chkbox ${plan.taken ? 'on' : ''}`}
+                              disabled={isFutureDate(selectedDay, todayAnchor)}
+                              onClick={() => handleTogglePlan(plan)}
+                              aria-pressed={plan.taken}
+                            >
+                              {plan.taken ? '✓' : ''}
+                            </button>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                className="icon-btn small"
+                                title="수정"
+                                onClick={() => requestPlanModal({ plan_id: plan.plan_id, supplement_name: plan.supplement_name, time_slot: plan.time_slot })}
+                              >
+                                ✎
+                              </button>
+                              <button
+                                className="icon-btn small"
+                                title="삭제"
+                                onClick={() => handleDeletePlan(plan.plan_id)}
+                              >
+                                🗑
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {(dailyPlans === null || dailyPlans.length === 0) && !dailyLoading && (
+                          <div className="muted">등록된 영양제가 없어요.</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {confirmRow && (
+        <div className="cal-overlay" role="dialog" aria-modal="true">
+          <div className="cal-confirm">
+            <h3 className="cal-confirm-title">정말 삭제할까요?</h3>
+            <div className="cal-confirm-meta">{confirmRow.recipe_nm_ko}</div>
+            <div className="cal-confirm-actions">
+              <button className="btn ghost" onClick={() => setConfirmRow(null)}>취소</button>
+              <button
+                className="btn danger"
+                onClick={async () => {
+                  const row = confirmRow
+                  setConfirmRow(null)
+                  await deleteSelected(row!)
+                }}
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {detailLoading && <div className="muted">상세 불러오는 중…</div>}
+      {detailLoading && <div className="muted">자세한 정보를 불러오고 있어요...</div>}
       {detail && (
         <RecipeDetailModal
           recipe={detail}
@@ -486,118 +629,118 @@ export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
         />
       )}
 
-      {/* 전체보기 모달 */}
-
       {showFull && typeof document !== 'undefined' && document.querySelector('.app-tab') && (
-
         createPortal(
-
-          <div className="cal-full-overlay" onClick={()=> setShowFull(false)}>
-
-            <div className="cal-full" onClick={(e)=> e.stopPropagation()}>
-
-              <button className="cal-x" onClick={()=> setShowFull(false)}>×</button>
-
+          <div className="cal-full-overlay" onClick={() => setShowFull(false)}>
+            <div className="cal-full" onClick={e => e.stopPropagation()}>
+              <button className="cal-x" onClick={() => setShowFull(false)}>×</button>
               <h3 className="title">전체 레시피 기록</h3>
-
               <div className="cal-full-body">
-
                 {fullHistoryGroups.length === 0 ? (
-
-                  <div className="muted full-empty">레시피 기록이 아직 없습니다.</div>
-
+                  <div className="muted full-empty">아직 기록이 없어요.</div>
                 ) : (
-
                   fullHistoryGroups.map(group => (
-
                     <div key={group.key} className="cal-full-month">
-
                       <div className="cal-full-month-head">{group.label}</div>
-
                       <ul className="list">
-
                         {group.items.map(({ row, dateLabel }) => (
-
                           <li key={`full-${row.selected_id}`} className={`row ${row.action === 1 ? 'done' : ''}`}>
-
                             <span className="full-date">{dateLabel}</span>
-
                             <button
-
                               className={`btn check sm ${row.action === 1 ? 'active' : ''}`}
-
                               onClick={() => toggleAction(row)}
-
                               disabled={togglingId === row.selected_id}
-
                               title={row.action === 1 ? '체크 해제' : '체크'}
-
                             >
-
-                              {row.action === 1 ? '✔' : '□'}
-
+                              {row.action === 1 ? '✓' : '□'}
                             </button>
-
                             <div className="title clamp-1">{row.recipe_nm_ko}</div>
-
-                            <div className="actions" style={{ display:'flex', gap:12 }}>
-
+                            <div className="actions" style={{ display: 'flex', gap: 12 }}>
                               <button className="btn sm" onClick={() => openDetailByRecommend(row.recommend_id, row.action === 1)}>
-
                                 자세히 보기
-
                               </button>
-
                               <button
-
                                 className="btn danger outline sm"
-
                                 onClick={() => setConfirmRow(row)}
-
                                 disabled={deletingId === row.selected_id}
-
                                 aria-label="삭제"
-
-                                title="삭제"
-
                               >
-
-                                {deletingId === row.selected_id ? '삭제 중…' : '×'}
-
+                                {deletingId === row.selected_id ? '...' : '×'}
                               </button>
-
                             </div>
-
                           </li>
-
                         ))}
-
                       </ul>
-
                     </div>
-
                   ))
-
                 )}
-
               </div>
-
-              <div style={{display:'flex', justifyContent:'flex-end', marginTop:12}}>
-
-                <button className="btn" onClick={()=> setShowFull(false)}>닫기</button>
-
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                <button className="btn" onClick={() => setShowFull(false)}>닫기</button>
               </div>
-
             </div>
-
           </div>,
-
           document.querySelector('.app-tab') as Element
-
         )
-
       )}
 
+      {showPlanModal && isLoggedIn && (
+        <AddSupplementPlanModal
+          plan={editPlan || undefined}
+          onClose={handlePlanModalClose}
+          onAdded={handlePlanSaved}
+        />
+      )}
     </section>
   )
+}
+
+function ymd(d: Date) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return ''
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+function ym(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function toLocalDate(value?: string | null): Date | null {
+  if (!value) return null
+  const d = new Date(value)
+  if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const t = String(value).trim().slice(0, 10).replace(/[./]/g, '-')
+  const m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (!m) return null
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+}
+
+function isFutureDate(dateStr: string, anchor: Date) {
+  const d = toLocalDate(dateStr)
+  if (!d) return false
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const base = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate()).getTime()
+  return target > base
+}
+
+function slotLabel(slot: string): string {
+  const cleaned = slot.replace(/\s+/g, '')
+  if (/아침|모닝|morning|오전/i.test(cleaned)) return '아침'
+  if (/점심|런치|lunch|오후/i.test(cleaned)) return '점심'
+  if (/저녁|dinner|evening|취침전/i.test(cleaned)) return '저녁'
+  if (/간식|snack|공복/i.test(cleaned)) return '간식'
+  return '기타'
+}
+
+function dotColor(stat: DayStatus, isFuture: boolean) {
+  if (isFuture) return null
+  const taken = Math.max(0, stat.taken ?? 0)
+  const total = Math.max(0, stat.total ?? 0)
+  if (taken === 0) {
+    return total === 0 ? null : '#ef4444'
+  }
+  if (total === 0) return '#16a34a'
+  if (taken >= total) return '#16a34a'
+  return '#f59e0b'
 }

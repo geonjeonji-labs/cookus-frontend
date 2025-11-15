@@ -27,7 +27,7 @@ export default function BadgeDisplaySelector({
   }
 
   return (
-    <ModalFrame title="대표 배지 선택" onClose={onClose}>
+    <ModalFrame title="프로필 표시 배지 선택" onClose={onClose} modalClassName="badge-display-modal">
       <div className="badge-display-panel">
         <div className="badge-display-label">표시할 배지</div>
         <div className="badge-display-list">

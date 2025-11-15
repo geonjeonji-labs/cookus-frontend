@@ -1,64 +1,32 @@
 import { useEffect, useState } from 'react'
 import { fridgeAPI } from '../api/fridge'
 import type { Ingredient } from '../api/fridge'
-import type { Recipe } from '../api/recipe'
-import AddIngredientModal from '../components/AddIngredientModal'
-import RecipeDetailModal from '../components/RecipeDetailModal'
-import RecipeRecommendModal from '../components/RecipeRecommendModal'
 import './Fridge.css'
 import servingBattery from '../assets/서빙 건전지.png'
+import cookerBattery from '../assets/요리사 건전지.png'
 import { fetchFaq, fetchFaqCategories, type FaqItem } from '../api/faq'
-import api from '../api/axios'
 
-type Props = { isLoggedIn: boolean; onRequireLogin: () => void }
+type Props = { isLoggedIn: boolean }
 
-export default function Fridge({ isLoggedIn, onRequireLogin }: Props) {
+export default function Fridge({ isLoggedIn }: Props) {
   const [items, setItems] = useState<Ingredient[]>([])
-  const [showAdd, setShowAdd] = useState(false)
-  const [showRec, setShowRec] = useState(false)
-  const [detail, setDetail] = useState<Recipe | null>(null)
   const [showAbout, setShowAbout] = useState(false)
   const [showFAQ, setShowFAQ] = useState(false)
-  const [pendingRecipeIds, setPendingRecipeIds] = useState<number[]>([])
-  const [confirmedRecipeIds, setConfirmedRecipeIds] = useState<number[]>([])
 
   const load = async () => { try { setItems(await fridgeAPI.listFridge()) } catch {} }
   useEffect(() => { if (isLoggedIn) load(); else { setItems([]) } }, [isLoggedIn])
-
-  const openAdd = () => (isLoggedIn ? setShowAdd(true) : onRequireLogin())
-  const recommend = () => (isLoggedIn ? setShowRec(true) : onRequireLogin())
-  const removePendingRecipes = (ids: number[]) => {
-    if (!ids.length) return
-    setPendingRecipeIds(prev => prev.filter(id => !ids.includes(id)))
-  }
-
-  const markRecipesSelected = (recipeIds: number[]) => {
-    if (!recipeIds.length) return
-    setConfirmedRecipeIds(prev => {
-      const next = new Set(prev)
-      recipeIds.forEach(id => next.add(id))
-      return Array.from(next)
-    })
-    removePendingRecipes(recipeIds)
-  }
-
-  const togglePendingRecipe = (recipeId: number) => {
-    setPendingRecipeIds(prev =>
-      prev.includes(recipeId) ? prev.filter(id => id !== recipeId) : [...prev, recipeId]
-    )
-  }
-
-  const closeRecommend = () => {
-    setShowRec(false)
-    setPendingRecipeIds([])
-  }
 
   return (
     <section className="app-tab fri">
       <div className="card hero-one">
         <div className="badge">CookUS</div>
         <h1 className="title">슬기로운 레시피 생활</h1>
-        <p className="desc">우리랑 요리하자!</p>
+        <p className="desc">우리랑 같이 요리하자!</p>
+        {isLoggedIn && (
+          <p style={{ marginTop: 4, fontSize: 13.5, color: '#6b7280' }}>
+            지금 냉장고에는 총 <strong>{items.length}</strong>개의 재료가 있어요.
+          </p>
+        )}
 
         {/* 중앙 큰 냉장고 */}
         <div className="illust-wrap">
@@ -73,47 +41,12 @@ export default function Fridge({ isLoggedIn, onRequireLogin }: Props) {
         </div>
 
         {/* 일러스트 아래로 이동 */}
-        {/* footer links */}
         <div style={{marginTop:16, fontSize:12.5, color:'#6b7280', display:'flex', alignItems:'center', gap:10}}>
           <a role="link" onClick={()=>setShowAbout(true)} style={{cursor:'pointer', color:'#6b7280', textDecoration:'none'}}>쿠커스 소개</a>
           <span style={{width:1, height:14, background:'#d1d5db'}} />
           <a role="link" onClick={()=>setShowFAQ(true)} style={{cursor:'pointer', color:'#6b7280', textDecoration:'none'}}>FAQ</a>
         </div>
       </div>
-
-      {/* 모달 */}
-      {showAdd && (
-        <div className="modal-backdrop" onClick={() => setShowAdd(false)}>
-          <AddIngredientModal onClose={async (saved) => { setShowAdd(false); if (saved) await load() }} />
-        </div>
-      )}
-      {showRec && (
-        <RecipeRecommendModal
-          onClose={closeRecommend}
-          onDetail={r => setDetail(r)}
-          pendingRecipeIds={pendingRecipeIds}
-          confirmedRecipeIds={confirmedRecipeIds}
-          onToggleRecipe={togglePendingRecipe}
-          onRecipesConfirmed={markRecipesSelected}
-          onRemovePending={removePendingRecipes}
-        />
-      )}
-
-      {/* 모달: 레시피 상세 */}
-      {detail && (
-        <div className="inner-overlay" onClick={() => setDetail(null)}>
-          <div onClick={e=>e.stopPropagation()}>
-            <RecipeDetailModal
-              recipe={detail}
-              onClose={() => setDetail(null)}
-              showTimer={false}
-              onSelectedChange={(recipeId, isSelected) => {
-                if (isSelected) markRecipesSelected([recipeId])
-              }}
-            />
-          </div>
-        </div>
-      )}
 
       {/* 소개 모달 */}
       {showAbout && (
@@ -126,6 +59,12 @@ export default function Fridge({ isLoggedIn, onRequireLogin }: Props) {
               한 번의 선택으로 요리 기록까지 관리할 수 있는 요리 도우미입니다.
               캘린더에 요리 기록을 남기고, 대시보드로 나의 요리 습관을 확인해 보세요.
             </p>
+            <img
+              src={cookerBattery}
+              alt="요리사 건전지"
+              className="cooker battery"
+              style={{ width: 260, height: 'auto' }}
+            />
             <div style={{display:'flex', justifyContent:'flex-end', marginTop:12}}>
               <button className="btn" onClick={()=>setShowAbout(false)}>닫기</button>
             </div>

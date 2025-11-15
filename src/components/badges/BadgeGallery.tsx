@@ -106,7 +106,7 @@ export default function BadgeGallery({
         const items = grouped.get(categoryKey) ?? []
         return (
           <section key={categoryKey}>
-            <h4 style={{ margin: '6px 0 10px', color: '#7a513a' }}>{badgeCategoryLabels[categoryKey]}</h4>
+            <h4 style={{ margin: '6px 0 6px', color: '#7a513a' }}>{badgeCategoryLabels[categoryKey]}</h4>
             <div className="badge-grid">
               {items.map(item => {
                 const owned = Boolean(item.earnedAt)

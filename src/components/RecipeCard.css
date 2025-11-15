@@ -95,6 +95,7 @@
 
 
 .rc-foot { display:flex; gap:8px; justify-content: flex-end; align-items:center; }
+.rc-foot .btn:not(.danger){ font-size:12px; padding:6px 10px; line-height:1.1; white-space:nowrap; }
 .rc-foot .btn.sm{ margin-bottom:0px; } /* Shorts 버튼을 살짝 아래로 */
 .btn.danger.outline {
   border: 1px solid #ef4444;
