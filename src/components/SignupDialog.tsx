@@ -49,6 +49,7 @@ export default function SignupDialog({
       title="회원가입"
       desc="아래 정보를 입력해 CookUS에 가입하세요."
       onClose={onClose}
+      modalClassName="signup-modal"
     >
       {error && <div className="form-error">{error}</div>}
 

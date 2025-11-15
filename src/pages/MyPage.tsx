@@ -20,7 +20,7 @@ export default function MyPage({ isLoggedIn, onRequireLogin, user, refreshUser }
   const [error, setError] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
-  const [activeTab, setActiveTab] = useState<'profile' | 'badges'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'badges'>('badges')
   const [badgeOverview, setBadgeOverview] = useState<BadgeOverview | null>(null)
   const [badgeLoading, setBadgeLoading] = useState(false)
   const [badgeError, setBadgeError] = useState<string | null>(null)
@@ -151,8 +151,8 @@ export default function MyPage({ isLoggedIn, onRequireLogin, user, refreshUser }
       </div>
 
       {activeTab === 'profile' && (
-      <div className="card my-card">
-        <div className="row">
+        <div className="card my-card">
+          <div className="row">
           <div className="avatar">{(me?.user_name ?? 'U').slice(0,1)}</div>
           <div className="info">
             <div className="name">{me?.user_name ?? '—'}</div>

@@ -37,7 +37,7 @@ export default function AddSupplementPlanModal({ onClose, onAdded, plan }: Props
   }
 
   return (
-    <ModalFrame title={plan ? '영양제 수정' : '영양제 등록'} onClose={onClose}>
+    <ModalFrame title={plan ? '영양제 수정' : '영양제 등록'} onClose={onClose} modalClassName="supplement-modal">
       <div className="form-vert">
         <label>
           <div className="label">영양제 이름</div>

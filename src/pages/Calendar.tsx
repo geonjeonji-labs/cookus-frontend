@@ -155,6 +155,44 @@ export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
     return monthBuckets.get(d.getDate()) ?? []
   }, [selectedDay, month, monthBuckets])
 
+  const fullHistoryGroups = useMemo(() => {
+    type Group = {
+      key: string
+      label: string
+      year: number
+      month: number
+      items: Array<{ row: Row; date: Date; dateLabel: string }>
+    }
+    const groups = new Map<string, Group>()
+    for (const row of data?.recipes ?? []) {
+      const d = toLocalDate(row.selected_date)
+      if (!d) continue
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label = `${d.getFullYear()}년 ${d.getMonth() + 1}월`
+      const existing = groups.get(key)
+      if (existing) {
+        existing.items.push({ row, date: d, dateLabel: ymd(d) })
+      } else {
+        groups.set(key, {
+          key,
+          label,
+          year: d.getFullYear(),
+          month: d.getMonth(),
+          items: [{ row, date: d, dateLabel: ymd(d) }]
+        })
+      }
+    }
+    const arr = Array.from(groups.values())
+    arr.sort((a, b) => {
+      if (a.year !== b.year) return b.year - a.year
+      return b.month - a.month
+    })
+    arr.forEach(group => {
+      group.items.sort((a, b) => b.date.getTime() - a.date.getTime())
+    })
+    return arr
+  }, [data])
+
   const now = new Date()
   const todayStr = ymd(now)
   const todayAnchor = useMemo(() => {
@@ -449,53 +487,117 @@ export default function Calendar({ isLoggedIn, userName }: CalendarProps) {
       )}
 
       {/* 전체보기 모달 */}
+
       {showFull && typeof document !== 'undefined' && document.querySelector('.app-tab') && (
+
         createPortal(
+
           <div className="cal-full-overlay" onClick={()=> setShowFull(false)}>
+
             <div className="cal-full" onClick={(e)=> e.stopPropagation()}>
+
               <button className="cal-x" onClick={()=> setShowFull(false)}>×</button>
-              <h3 className="title">{selectedDay ? `${selectedDay}의 레시피` : '전체 보기'}</h3>
-              {!selectedDay || selectedRecipes.length === 0 ? (
-                <div className="muted">표시할 기록이 없어요.</div>
-              ) : (
-                <ul className="list">
-                  {selectedRecipes.map((r) => (
-                    <li key={`full-${r.selected_id}`} className={`row ${r.action === 1 ? 'done' : ''}`}>
-                      <button
-                        className={`btn check sm ${r.action === 1 ? 'active' : ''}`}
-                        onClick={() => toggleAction(r)}
-                        disabled={togglingId === r.selected_id}
-                        title={r.action === 1 ? '체크 해제' : '체크'}
-                      >
-                        {r.action === 1 ? '☑' : '☐'}
-                      </button>
-                      <div className="title clamp-1">{r.recipe_nm_ko}</div>
-                      <div className="actions" style={{ display:'flex', gap:12 }}>
-                        <button className="btn sm" onClick={() => openDetailByRecommend(r.recommend_id, r.action === 1)}>
-                          자세히 보기
-                        </button>
-                        <button
-                          className="btn danger outline sm"
-                          onClick={() => setConfirmRow(r)}
-                          disabled={deletingId === r.selected_id}
-                          aria-label="삭제"
-                          title="삭제"
-                        >
-                          {deletingId === r.selected_id ? '삭제 중…' : '×'}
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div style={{display:'flex', justifyContent:'flex-end', marginTop:10}}>
-                <button className="btn" onClick={()=> setShowFull(false)}>닫기</button>
+
+              <h3 className="title">전체 레시피 기록</h3>
+
+              <div className="cal-full-body">
+
+                {fullHistoryGroups.length === 0 ? (
+
+                  <div className="muted full-empty">레시피 기록이 아직 없습니다.</div>
+
+                ) : (
+
+                  fullHistoryGroups.map(group => (
+
+                    <div key={group.key} className="cal-full-month">
+
+                      <div className="cal-full-month-head">{group.label}</div>
+
+                      <ul className="list">
+
+                        {group.items.map(({ row, dateLabel }) => (
+
+                          <li key={`full-${row.selected_id}`} className={`row ${row.action === 1 ? 'done' : ''}`}>
+
+                            <span className="full-date">{dateLabel}</span>
+
+                            <button
+
+                              className={`btn check sm ${row.action === 1 ? 'active' : ''}`}
+
+                              onClick={() => toggleAction(row)}
+
+                              disabled={togglingId === row.selected_id}
+
+                              title={row.action === 1 ? '체크 해제' : '체크'}
+
+                            >
+
+                              {row.action === 1 ? '✔' : '□'}
+
+                            </button>
+
+                            <div className="title clamp-1">{row.recipe_nm_ko}</div>
+
+                            <div className="actions" style={{ display:'flex', gap:12 }}>
+
+                              <button className="btn sm" onClick={() => openDetailByRecommend(row.recommend_id, row.action === 1)}>
+
+                                자세히 보기
+
+                              </button>
+
+                              <button
+
+                                className="btn danger outline sm"
+
+                                onClick={() => setConfirmRow(row)}
+
+                                disabled={deletingId === row.selected_id}
+
+                                aria-label="삭제"
+
+                                title="삭제"
+
+                              >
+
+                                {deletingId === row.selected_id ? '삭제 중…' : '×'}
+
+                              </button>
+
+                            </div>
+
+                          </li>
+
+                        ))}
+
+                      </ul>
+
+                    </div>
+
+                  ))
+
+                )}
+
               </div>
+
+              <div style={{display:'flex', justifyContent:'flex-end', marginTop:12}}>
+
+                <button className="btn" onClick={()=> setShowFull(false)}>닫기</button>
+
+              </div>
+
             </div>
+
           </div>,
+
           document.querySelector('.app-tab') as Element
+
         )
+
       )}
+
     </section>
   )
 }

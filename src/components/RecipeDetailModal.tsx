@@ -74,7 +74,7 @@ export default function RecipeDetailModal({ recipe, onClose, showSelect=true, co
   return (
     <FramePortal>
       <div className="rec-overlay" onClick={onClose}>
-        <div className="rec-modal" onClick={e=>e.stopPropagation()}>
+        <div className="rec-modal rec-modal--detail" onClick={e=>e.stopPropagation()}>
           <div className="rec-head">
             <h3>
               {recipe.recipe_nm_ko}

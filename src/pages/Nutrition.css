@@ -1,11 +1,8 @@
 ﻿.nutrition.app-tab{
-  display:grid;
-  grid-template-rows:auto 1fr;
   gap:12px;
-  width:100%;
-  justify-items:stretch;
-  padding: 10px 20px 0 20px;
-  overflow:hidden;
+  padding:10px 20px 0 20px;
+  align-items:stretch;
+  overflow:auto;
 }
 .nutrition .nt-header{ width:100%; display:flex; align-items:center; justify-content:space-between; text-align:left; }
 .nutrition .nt-header .title{ margin:0 }

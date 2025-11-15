@@ -1,6 +1,12 @@
 /* --- Layout & Card --- */
-.mypage { padding:10px; }
-.my-card { padding:0px 14px; }
+.mypage{
+  width:100%;
+}
+.mypage .my-card{
+  width:100%;
+  padding:0 14px 18px;
+  box-sizing:border-box;
+}
 .my-card.center { display:grid; place-items:center; gap:10px; }
 
 /* --- Header row (avatar + name) --- */
@@ -70,33 +76,45 @@
 }
 
 .editbtn{
-  border:none; width: 340px;
-  background: #ecce95;
-  color: #ffffff;
-  padding:10px 14px; border-radius:12px; font-weight:700; font-size: 14px;cursor:pointer
+  border:none;
+  width:100%;
+  max-width:360px;
+  background:#ecce95;
+  color:#ffffff;
+  padding:10px 14px;
+  border-radius:12px;
+  font-weight:700;
+  font-size:14px;
+  cursor:pointer;
 }
 
 /* --- Sub Tabs (inside MyPage) --- */
-.subtabs {
+.subtabs{
   display:flex;
   align-items:center;
   gap:0;
-  margin: px 0 0px;
+  width:100%;
+  max-width:340px;
+  padding: 14px;
   border:1px solid #e9c86f;
   background:#fffdf2;
-  border-radius:12px;
+  border-radius:999px;
   overflow:hidden;
-  height: 35px;
-  width: 200px;
+  height:30px;
+  box-shadow:0 4px 12px rgba(0,0,0,.05);
 }
-.subtab-btn {
+.subtab-btn{
   flex:1;
-  padding:8px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  padding:0 16px;
   cursor:pointer;
-  font-weight:600;
+  font-weight:700;
   color:#7b4e2d;
   user-select:none;
-  font-size:13px;
+  font-size:14px;
   border:none;
   background:transparent;
   transition:background .2s ease, color .2s ease;
@@ -105,12 +123,12 @@
   border-left:1px solid #e9c86f;
 }
 .subtab-btn.active {
-  background:#ffe4b8;
+  background:#fadba9;
   color:#6b3f23;
 }
 
 /* --- Badges view --- */
-.badge-grid { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:8px; width:100%; }
+.badge-grid { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:8px; width:100%; overflow:hidden; }
 .badge-tile { text-align:center; }
 .badge-tile .badge-icon { font-size:28px; }
 .badge-tile .badge-name { margin-top:6px; font-weight:700; color:#7a513a }
@@ -150,8 +168,11 @@
 .badge-tile-btn .badge-name{ font-size:12px; color:#6b4e2d; font-weight:600 }
 
 /* Keep scrolling inside MyPage tab only */
-.app-tab.mypage{ overflow:auto; max-width:100%; }
-.app-tab.mypage .card{ max-width:100%; box-sizing:border-box; }
+.app-tab.mypage{
+  align-items:stretch;
+}
+.app-tab.mypage > *{ width:100%; }
+.app-tab.mypage .card{ width:100%; max-width:100%; box-sizing:border-box; }
 .my-badge-header{
   display:flex;
   justify-content:space-between;

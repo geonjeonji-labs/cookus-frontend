@@ -39,6 +39,7 @@ export default function LoginDialog({
         title="로그인"
         desc="아이디와 비밀번호를 입력하세요."
         onClose={onClose}
+        modalClassName="login-modal"
       >
         {error && <div className="form-error">{error}</div>}
 

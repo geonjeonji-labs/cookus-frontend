@@ -35,7 +35,7 @@ export default function AddSupplementModal({ onClose, onAdded }: Props) {
   }
 
   return (
-    <ModalFrame title="섭취 기록 추가" onClose={onClose}>
+    <ModalFrame title="섭취 기록 추가" onClose={onClose} modalClassName="supplement-modal">
       <div className="form-vert">
         <label>
           <div className="label">영양제명</div>

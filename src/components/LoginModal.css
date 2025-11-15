@@ -1,13 +1,53 @@
-/* ===== Login/Signup Modal ===== */
+﻿/* ===== Login/Signup Modal ===== */
 .modal-overlay{
   position:fixed; inset:0; background:rgba(0,0,0,.45);
   display:grid; place-items:center; z-index:1000;
 }
-.modal.login{
-  width:min(420px, 92vw); max-height:86vh; overflow:auto;
+.modal.login,
+.modal.login-modal,
+.modal.signup-modal,
+.modal.supplement-modal,
+.modal.badge-modal{
   background:#FFF6D8; border:1px solid #E3C881; border-radius:16px;
   box-shadow:0 18px 40px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.6);
   padding:18px 16px 16px; color:#5b3a22; position:relative;
+}
+
+.modal.login{
+  width:auto;
+  min-width:420px;
+  max-width:min(420px, 92vw);
+  max-height:86vh;
+  overflow:auto;
+}
+
+.modal.login-modal{
+  width:auto;
+  min-width:420px;
+  max-width:min(420px, 92vw);
+  max-height:45vh;
+  overflow:auto;
+}
+.modal.signup-modal{
+  width:auto;
+  min-width:420px;
+  max-width:min(420px, 92vw);
+  max-height:86vh;
+  overflow:auto;
+}
+.modal.supplement-modal{
+  width:auto;
+  min-width:420px;
+  max-width:min(420px, 92vw);
+  max-height:30vh;
+  overflow:auto;
+}
+.modal.badge-modal{
+  width:auto;
+  min-width:420px;
+  max-width:min(420px, 92vw);
+  max-height:30vh;
+  overflow:auto;
 }
 .modal-x{
   position:absolute; right:10px; top:10px; width:32px; height:32px; border-radius:50%;
@@ -26,7 +66,7 @@
 /* === Pretty Radio (pill) for LoginModal === */
 .pill-group{ display:flex; gap:10px; align-items:center; }
 
-/* 접근성: 진짜 라디오는 숨기되 포커스 가능 */
+/* 토글 진짜 라디오 숨기기 */
 .radio{
   position:absolute;
   inline-size:1px; block-size:1px;
@@ -66,7 +106,7 @@
   background: rgba(255,255,255,.25);
 }
 
-/* 키보드 포커스 링 */
+/* 포커스 표시 */
 .radio:focus-visible + .rbtn{
   outline:2px solid #7b4e2d;
   outline-offset:2px;

@@ -39,7 +39,7 @@ export default function BadgeDetailModal({
   }
 
   return (
-    <ModalFrame onClose={onClose} title={title}>
+    <ModalFrame onClose={onClose} title={title} modalClassName="badge-modal">
       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 16, alignItems: 'center', overflow: 'hidden' }}>
         <div style={{ display: 'grid', placeItems: 'center' }}>
           <div className="badge-spin-glow">

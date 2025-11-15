@@ -199,7 +199,7 @@ export default function AddIngredientModal({ onClose }: Props) {
               {customInfo && <div className="hint small">{customInfo}</div>}
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: 4 }}>
+            <div className="search-results">
               {results.map(r => (
                 <button
                   key={r.name}

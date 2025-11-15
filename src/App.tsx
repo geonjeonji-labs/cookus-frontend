@@ -1,5 +1,4 @@
-// src/App.tsx
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import './App.css'
 
 import Fridge from './pages/Fridge'
@@ -9,11 +8,16 @@ import MyPage from './pages/MyPage'
 import Navigation from './components/Navigation'
 import LoginDialog from './components/LoginDialog'
 import SignupDialog from './components/SignupDialog'
+import AddIngredientModal from './components/AddIngredientModal'
+import RecipeRecommendModal from './components/RecipeRecommendModal'
+import RecipeDetailModal from './components/RecipeDetailModal'
+import TabBar from './components/TabBar'
 
 import { authAPI } from './api/auth'
 import CookTest from './pages/CookTest'
 import Nutrition from './pages/Nutrition'
 import Notifications from './components/Notifications'
+import type { Recipe } from './api/recipe'
 
 export type User = { user_id: string; user_name: string; displayed_badge_id?: number | null }
 export type TabKey = 'fridge' | 'calendar' | 'dashboard' | 'cooktest' | 'nutrition' | 'mypage'
@@ -24,6 +28,11 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false)
   const [booting, setBooting] = useState(true)
   const [showSignup, setShowSignup] = useState(false)
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [showQuickRecommend, setShowQuickRecommend] = useState(false)
+  const [quickDetail, setQuickDetail] = useState<Recipe | null>(null)
+  const [pendingRecipeIds, setPendingRecipeIds] = useState<number[]>([])
+  const [confirmedRecipeIds, setConfirmedRecipeIds] = useState<number[]>([])
 
   const refreshUser = useCallback(async () => {
     try {
@@ -53,6 +62,17 @@ export default function App() {
   const isLoggedIn = !!user
   const requireLogin = () => setShowLogin(true)
 
+  useEffect(() => {
+    setTab(isLoggedIn ? 'calendar' : 'fridge')
+    if (!isLoggedIn) {
+      setShowQuickAdd(false)
+      setShowQuickRecommend(false)
+      setQuickDetail(null)
+      setPendingRecipeIds([])
+      setConfirmedRecipeIds([])
+    }
+  }, [isLoggedIn])
+
   const handleLoginSuccess = async (_u: User) => {
     try {
       await refreshUser()
@@ -62,30 +82,77 @@ export default function App() {
   }
 
   const handleLogout = async () => {
-    try { await authAPI.logout() } catch {}
+    try {
+      await authAPI.logout()
+    } catch {}
     setUser(null)
     setTab('fridge')
+    setShowQuickAdd(false)
+    setShowQuickRecommend(false)
+    setQuickDetail(null)
+    setPendingRecipeIds([])
+    setConfirmedRecipeIds([])
+  }
+
+  const removePendingRecipes = (ids: number[]) =>
+    setPendingRecipeIds(prev => prev.filter(id => !ids.includes(id)))
+
+  const togglePendingRecipe = (recipeId: number) =>
+    setPendingRecipeIds(prev =>
+      prev.includes(recipeId) ? prev.filter(id => id !== recipeId) : [...prev, recipeId]
+    )
+
+  const markRecipesSelected = (ids: number[]) => {
+    if (!ids.length) return
+    setConfirmedRecipeIds(prev => Array.from(new Set([...prev, ...ids])))
+    removePendingRecipes(ids)
+  }
+
+  const closeRecommendModal = () => {
+    setShowQuickRecommend(false)
+    setPendingRecipeIds([])
+  }
+
+  const openAddAction = () => {
+    if (!isLoggedIn) {
+      requireLogin()
+      return
+    }
+    setShowQuickAdd(true)
+  }
+
+  const openRecommendAction = () => {
+    if (!isLoggedIn) {
+      requireLogin()
+      return
+    }
+    setShowQuickRecommend(true)
   }
 
   if (booting) {
-    return <div className="app-shell"><div className="app-frame"><main className="app-main">로딩 중…</main></div></div>
+    return (
+      <div className="app-shell">
+        <div className="app-frame">
+          <main className="app-main">로딩 중...</main>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="app-shell">
       <div className="app-frame">
         <Navigation
-          current={tab}
-          onChange={setTab}
           isLoggedIn={isLoggedIn}
           user={user}
           onLoginClick={() => setShowLogin(true)}
           onSignupClick={() => setShowSignup(true)}
           onLogout={handleLogout}
+          onAddClick={openAddAction}
+          onRecommendClick={openRecommendAction}
         />
 
-        {/* ✅ 알림 벨/드롭다운 (로그인 시에만). 절대 위치로 좌상단 고정 */}
-        {isLoggedIn && (<Notifications isLoggedIn={isLoggedIn} />)}
+        {isLoggedIn && <Notifications isLoggedIn={isLoggedIn} />}
 
         <main className={`app-main ${tab === 'dashboard' ? 'app-main--dashboard' : ''}`}>
           {tab === 'fridge' && (
@@ -97,15 +164,11 @@ export default function App() {
           )}
 
           {tab === 'cooktest' && (
-            <CookTest
-              isLoggedIn={isLoggedIn}
-              onRequireLogin={requireLogin}
-              userId={user?.user_id}
-            />
+            <CookTest isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} userId={user?.user_id} />
           )}
 
           {tab === 'dashboard' && (
-            <Dashboard isLoggedIn={isLoggedIn} onRequireLogin={requireLogin}/>
+            <Dashboard isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} />
           )}
 
           {tab === 'nutrition' && (
@@ -121,17 +184,62 @@ export default function App() {
             />
           )}
         </main>
+
+        <TabBar
+          current={tab}
+          onChange={setTab}
+          tabs={['calendar', 'dashboard', 'cooktest', 'nutrition', 'mypage']}
+        />
       </div>
 
-      {showLogin && (
-        <LoginDialog onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} />
-      )}
+      {showLogin && <LoginDialog onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} />}
 
       {showSignup && (
         <SignupDialog
           onClose={() => setShowSignup(false)}
-          onSuccess={(u) => { setUser(u); setShowSignup(false); }}
+          onSuccess={u => {
+            setUser(u)
+            setShowSignup(false)
+          }}
         />
+      )}
+
+      {showQuickAdd && (
+        <AddIngredientModal
+          onClose={saved => {
+            setShowQuickAdd(false)
+            if (saved && !isLoggedIn) {
+              // nothing extra for now
+            }
+          }}
+        />
+      )}
+
+      {showQuickRecommend && (
+        <RecipeRecommendModal
+          onClose={closeRecommendModal}
+          onDetail={setQuickDetail}
+          pendingRecipeIds={pendingRecipeIds}
+          confirmedRecipeIds={confirmedRecipeIds}
+          onToggleRecipe={togglePendingRecipe}
+          onRecipesConfirmed={markRecipesSelected}
+          onRemovePending={removePendingRecipes}
+        />
+      )}
+
+      {quickDetail && (
+        <div className="inner-overlay" onClick={() => setQuickDetail(null)}>
+          <div onClick={e => e.stopPropagation()}>
+            <RecipeDetailModal
+              recipe={quickDetail}
+              onClose={() => setQuickDetail(null)}
+              showTimer={false}
+              onSelectedChange={(recipeId, selected) => {
+                if (selected) markRecipesSelected([recipeId])
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   )

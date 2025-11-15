@@ -1,18 +1,21 @@
 .fridge-page{ height:100%; display:grid; grid-template-rows:1fr; overflow:hidden; }
 .fridge-wrap{ min-height:0; overflow:auto; }
-
 .app-tab.fri{
-  min-height:0;
-  overflow:auto;
+  align-items:center;
+  text-align:center;
+  gap:18px;
+  overflow-x:hidden;
 }
 
 .hero-one{
-  min-height:100%;
-  height:auto;
+  width:90%;
   background:#fffdf4;
   display:grid;
   grid-template-rows:auto auto auto 1fr auto auto;
-  justify-items:center; text-align:center; row-gap:10px; padding: 20px;
+  justify-items:center;
+  text-align:center;
+  row-gap:10px;
+  box-sizing:border-box;
 }
 
 .hero-one .badge{
