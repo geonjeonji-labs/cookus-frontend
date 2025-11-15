@@ -11,15 +11,17 @@ import SignupDialog from './components/SignupDialog'
 import AddIngredientModal from './components/AddIngredientModal'
 import RecipeRecommendModal from './components/RecipeRecommendModal'
 import RecipeDetailModal from './components/RecipeDetailModal'
+import SupplementRecommenderModal from './components/SupplementRecommenderModal'
 import TabBar from './components/TabBar'
 
 import { authAPI } from './api/auth'
 import CookTest from './pages/CookTest'
+import Nutrition from './pages/Nutrition'
 import Notifications from './components/Notifications'
 import type { Recipe } from './api/recipe'
 
 export type User = { user_id: string; user_name: string; displayed_badge_id?: number | null }
-export type TabKey = 'fridge' | 'calendar' | 'dashboard' | 'cooktest' | 'mypage'
+export type TabKey = 'fridge' | 'calendar' | 'dashboard' | 'cooktest' | 'nutrition' | 'mypage'
 
 export default function App() {
   const [tab, setTab] = useState<TabKey>('fridge')
@@ -29,6 +31,7 @@ export default function App() {
   const [showSignup, setShowSignup] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [showQuickRecommend, setShowQuickRecommend] = useState(false)
+  const [showSupplementRecommend, setShowSupplementRecommend] = useState(false)
   const [quickDetail, setQuickDetail] = useState<Recipe | null>(null)
   const [pendingRecipeIds, setPendingRecipeIds] = useState<number[]>([])
   const [confirmedRecipeIds, setConfirmedRecipeIds] = useState<number[]>([])
@@ -67,6 +70,7 @@ export default function App() {
     if (!isLoggedIn) {
       setShowQuickAdd(false)
       setShowQuickRecommend(false)
+      setShowSupplementRecommend(false)
       setQuickDetail(null)
       setPendingRecipeIds([])
       setConfirmedRecipeIds([])
@@ -89,6 +93,7 @@ export default function App() {
     setTab('fridge')
     setShowQuickAdd(false)
     setShowQuickRecommend(false)
+    setShowSupplementRecommend(false)
     setQuickDetail(null)
     setPendingRecipeIds([])
     setConfirmedRecipeIds([])
@@ -129,6 +134,14 @@ export default function App() {
     setShowQuickRecommend(true)
   }
 
+  const openSupplementRecommendAction = () => {
+    if (!isLoggedIn) {
+      requireLogin()
+      return
+    }
+    setShowSupplementRecommend(true)
+  }
+
   if (booting) {
     return (
       <div className="app-shell">
@@ -158,6 +171,7 @@ export default function App() {
             if (tab !== 'calendar') setTab('calendar')
             setCalendarFullKey(prev => prev + 1)
           }}
+          onSupplementRecommendClick={openSupplementRecommendAction}
         />
 
         {isLoggedIn ? (
@@ -189,6 +203,10 @@ export default function App() {
 
           {tab === 'dashboard' && (
             <Dashboard isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} />
+          )}
+
+          {tab === 'nutrition' && (
+            <Nutrition isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} userName={user?.user_name} />
           )}
 
           {tab === 'mypage' && (
@@ -256,6 +274,10 @@ export default function App() {
             />
           </div>
         </div>
+      )}
+
+      {showSupplementRecommend && (
+        <SupplementRecommenderModal onClose={() => setShowSupplementRecommend(false)} />
       )}
     </div>
   )

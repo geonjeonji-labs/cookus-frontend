@@ -1,4 +1,5 @@
-﻿import './Navigation.css'
+import { useState } from 'react'
+import './Navigation.css'
 import type { User } from '../App'
 import { BadgeIcon } from './badges/BadgeSet'
 import { badgeMetaById } from '../data/badges'
@@ -12,6 +13,7 @@ type Props = {
   onAddClick: () => void
   onRecommendClick: () => void
   onShowAllRecipes?: () => void
+  onSupplementRecommendClick?: () => void
 }
 
 export default function Navigation({
@@ -23,10 +25,22 @@ export default function Navigation({
   onAddClick,
   onRecommendClick,
   onShowAllRecipes,
+  onSupplementRecommendClick,
 }: Props) {
   const displayedBadgeId = user?.displayed_badge_id ?? null
   const displayedBadgeMeta = displayedBadgeId ? badgeMetaById[displayedBadgeId] : undefined
   const displayedBadgeCode = displayedBadgeMeta?.iconCode
+  const [showSupplementAction, setShowSupplementAction] = useState(false)
+
+  const toggleSupplementAction = () => {
+    setShowSupplementAction(prev => !prev)
+  }
+
+  const handleSupplementClick = () => {
+    if (!onSupplementRecommendClick) return
+    onSupplementRecommendClick()
+    setShowSupplementAction(false)
+  }
 
   return (
     <header className="app-header">
@@ -60,11 +74,37 @@ export default function Navigation({
       <div className="tab-sep-line" />
 
       <div className="header-actions">
-        {onShowAllRecipes && (
-          <button className="btn ghost" onClick={onShowAllRecipes}>모든 레시피</button>
+        <div className="header-actions__main">
+          {onShowAllRecipes && (
+            <button className="btn ghost" onClick={onShowAllRecipes}>나의 모든 레시피</button>
+          )}
+          <button className="btn" onClick={onAddClick}>재료 추가</button>
+          <div className="header-actions__pair">
+            <button className="btn primary" onClick={onRecommendClick}>레시피 추천⭐</button>
+            {onSupplementRecommendClick && (
+              <button
+                type="button"
+                className={`btn caret-toggle ${showSupplementAction ? 'is-open' : ''}`}
+                aria-expanded={showSupplementAction}
+                aria-label={showSupplementAction ? '영양제 추천 받아보기' : '영양제 추천 받아보기'}
+                onClick={toggleSupplementAction}
+              >
+                <span aria-hidden>{showSupplementAction ? '▲' : '▼'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+        {onSupplementRecommendClick && (
+          <div
+            id="supplement-actions"
+            className={`header-actions-extra ${showSupplementAction ? 'open' : ''}`}
+            aria-hidden={!showSupplementAction}
+          >
+            <button className="btn ghost ghost--subtle" onClick={handleSupplementClick}>
+              영양제 추천 받아보기
+            </button>
+          </div>
         )}
-        <button className="btn" onClick={onAddClick}>재료 추가</button>
-        <button className="btn primary" onClick={onRecommendClick}>레시피 추천받기</button>
       </div>
     </header>
   )

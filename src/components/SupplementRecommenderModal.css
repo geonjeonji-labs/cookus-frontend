@@ -25,3 +25,8 @@
 .reco-card .r-meta{ display:flex; align-items:center; gap:8px; color:#6b7280 }
 .reco-card .badge{ display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; background:#fff7e2; border:1px solid #f3d08a; color:#7b4e2d }
 .reco-card .timing{ font-size:12px; color:#555 }
+.reco-note{
+  font-size:12px;
+  color:#7a7a7a;
+  font-weight:500;
+}

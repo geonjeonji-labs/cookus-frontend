@@ -115,7 +115,10 @@ export default function SupplementRecommenderModal({ onClose }: Props) {
 
         {results.length > 0 && (
           <div className="card" style={{ textAlign:'left' }}>
-            <h4 className="sec-title" style={{ marginTop:0 }}>추천 결과</h4>
+            <h4 className="sec-title" style={{ marginTop:0, display:'flex', alignItems:'center', gap:8 }}>
+              추천 결과
+              <span className="reco-note">추천되는 제품명의 출처는 식품의약품안전처입니다.</span>
+            </h4>
             <div className="reco-sections">
               {results.map((g, idx) => (
                 <section key={idx} className="reco-section">
