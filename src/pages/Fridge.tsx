@@ -60,10 +60,9 @@ export default function Fridge({ isLoggedIn }: Props) {
               캘린더에 요리 기록을 남기고, 대시보드로 나의 요리 습관을 확인해 보세요.
             </p>
             <img
-              src={cookerBattery}
-              alt="요리사 건전지"
-              className="cooker battery"
-              style={{ width: 260, height: 'auto' }}
+            src={cookerBattery}
+            alt="요리사 건전지"
+            className="cooker battery"
             />
             <div style={{display:'flex', justifyContent:'flex-end', marginTop:12}}>
               <button className="btn" onClick={()=>setShowAbout(false)}>닫기</button>
