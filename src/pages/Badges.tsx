@@ -69,7 +69,7 @@ export default function Badges({ isLoggedIn, onRequireLogin }: Props) {
 
   if (!isLoggedIn) {
     return (
-      <section className="app-tab mypage">
+      <section className="app-tab mypage badges-tab">
         <div className="card my-card center">
           <h2 className="title">뱃지 보기</h2>
           <p className="sub">로그인이 필요해요.</p>
@@ -80,7 +80,7 @@ export default function Badges({ isLoggedIn, onRequireLogin }: Props) {
   }
 
   return (
-    <section className="app-tab mypage">
+    <section className="app-tab mypage badges-tab">
       <div className="card my-card">
         <div className="my-badge-header" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <h3 style={{ marginTop: 0 }}>나의 뱃지</h3>
