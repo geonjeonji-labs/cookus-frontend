@@ -40,11 +40,14 @@
 
 .rec-modal{
   width:auto;
-  min-width:min(420px, 92vw);
-  max-width:clamp(420px, 92vw, 720px);
-  max-height:calc(100vh - 48px);
+  min-width:min(420px, 88vw);
+  max-width:min(720px, calc(100vw - 40px));
+  height:auto;
+  max-height:calc(100vh - 56px);
   overflow:auto;
   position:relative;
+  display:inline-flex;
+  flex-direction:column;
 }
 
 /* Wider modals for About/FAQ within app-frame */
