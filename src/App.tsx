@@ -89,7 +89,7 @@ export default function App() {
   const requireLogin = () => setShowLogin(true)
 
   useEffect(() => {
-    setTab(prev => {
+    setTab(() => {
       if (initialTabRef.current) {
         const nextTab = initialTabRef.current
         initialTabRef.current = null
