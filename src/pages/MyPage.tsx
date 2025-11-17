@@ -2,9 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { authAPI } from '../api/auth'
 import type { User } from '../api/auth'
 import EditProfileDialog from '../components/EditProfileDialog'
-import BadgeGallery from '../components/badges/BadgeGallery'
-import BadgeDisplaySelector from '../components/badges/BadgeDisplaySelector'
-import { badgesAPI, type BadgeOverview } from '../api/badges'
 import { fetchFaq, fetchFaqCategories, type FaqItem } from '../api/faq'
 import servingBattery from '../assets/서빙 건전지.png'
 import './MyPage.css'
@@ -16,19 +13,17 @@ type Props = {
   refreshUser: () => Promise<User>
 }
 
-export default function MyPage({ isLoggedIn, onRequireLogin, user, refreshUser }: Props) {
+export default function MyPage({
+  isLoggedIn,
+  onRequireLogin,
+  user,
+  refreshUser,
+}: Props) {
   const [me, setMe] = useState<User | null>(user)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
-  const [activeTab, setActiveTab] = useState<'profile' | 'badges'>('badges')
-  const [badgeOverview, setBadgeOverview] = useState<BadgeOverview | null>(null)
-  const [badgeLoading, setBadgeLoading] = useState(false)
-  const [badgeError, setBadgeError] = useState<string | null>(null)
-  const [showBadgeSelector, setShowBadgeSelector] = useState(false)
-  const [displayLoading, setDisplayLoading] = useState(false)
-  const [displayError, setDisplayError] = useState<string | null>(null)
   const [showAbout, setShowAbout] = useState(false)
   const [showFAQ, setShowFAQ] = useState(false)
 
@@ -73,40 +68,6 @@ export default function MyPage({ isLoggedIn, onRequireLogin, user, refreshUser }
     )
   }
 
-  const fetchBadges = async () => {
-    setBadgeError(null)
-    try {
-      setBadgeLoading(true)
-      setBadgeOverview(await badgesAPI.overview())
-    } catch {
-      setBadgeOverview(null)
-      setBadgeError('뱃지를 불러오지 못했어요.')
-    } finally {
-      setBadgeLoading(false)
-    }
-  }
-
-  const displayedBadgeId =
-    badgeOverview?.earned?.find(b => b.is_displayed)?.badge_id ?? null
-  const earnedBadges = badgeOverview?.earned ?? []
-
-  const handleBadgeDisplayChange = async (badgeId: number | null) => {
-    if (displayLoading) return false
-    setDisplayError(null)
-    try {
-      setDisplayLoading(true)
-      await badgesAPI.setDisplayBadge(badgeId)
-      await fetchBadges()
-      return true
-    } catch {
-      setDisplayError('프로필에 표시할 뱃지를 바꾸지 못했어요.')
-      return false
-    } finally {
-      setDisplayLoading(false)
-    }
-  }
-
-
   useEffect(() => {
     setMe(user)
   }, [user])
@@ -114,12 +75,8 @@ export default function MyPage({ isLoggedIn, onRequireLogin, user, refreshUser }
   useEffect(() => {
     if (isLoggedIn) {
       fetchMe()
-      fetchBadges()
     } else {
       setMe(null)
-      setBadgeOverview(null)
-      setBadgeError(null)
-      setBadgeLoading(false)
     }
   }, [isLoggedIn, fetchMe])
 
@@ -135,141 +92,90 @@ export default function MyPage({ isLoggedIn, onRequireLogin, user, refreshUser }
     )
   }
 
+
   return (
     <>
-    <section className="app-tab mypage">
-      <div className="subtabs">
-        <button
-          type="button"
-          className={["subtab-btn", activeTab === 'profile' ? 'active' : ''].join(' ')}
-          onClick={() => setActiveTab('profile')}
-        >
-          프로필
-        </button>
-        <button
-          type="button"
-          className={["subtab-btn", activeTab === 'badges' ? 'active' : ''].join(' ')}
-          onClick={() => setActiveTab('badges')}
-        >
-          뱃지 보기
-        </button>
-      </div>
-
-      {activeTab === 'profile' && (
+      <section className="app-tab mypage">
         <div className="card my-card">
           <div className="row">
-          <div className="avatar">{(me?.user_name ?? 'U').slice(0,1)}</div>
-          <div className="info">
-            <div className="name">{me?.user_name ?? '—'}</div>
-            <div className="uid">ID: {me?.user_id ?? '—'}</div>
+            <div className="avatar">{(me?.user_name ?? 'U').slice(0, 1)}</div>
+            <div className="info">
+              <div className="name">{me?.user_name ?? '—'}</div>
+              <div className="uid">ID: {me?.user_id ?? '—'}</div>
+            </div>
           </div>
-        </div>
 
-        {loading && <div className="note">불러오는 중…</div>}
-        {error && <div className="error">{error}</div>}
+          {loading && <div className="note">불러오는 중…</div>}
+          {error && <div className="error">{error}</div>}
 
-        <div className="divider" />
+          <div className="divider" />
 
-        <div className="fields">
-          <FieldRow
-            label="이메일"
-            value={<span className="value-strong">{me?.email ?? '—'}</span>}
-          />
-          <FieldRow
-            label="성별"
-            chip={me?.gender ? (me.gender === 'male' ? '남' : '여') : undefined}
-            chipVariant="mint"
-          />
-          <FieldRow label="생년월일" value={me?.date_of_birth ?? '—'} />
-          <FieldRow label="주간 목표" value={me?.goal != null ? String(me.goal) : '—'} />
-          <FieldRow
-            label="요리 레벨"
-            chip={me?.cooking_level ?? undefined}
-            chipVariant="beige"
-          />
-        </div>
+          <div className="fields">
+            <FieldRow
+              label="이메일"
+              value={<span className="value-strong">{me?.email ?? '—'}</span>}
+            />
+            <FieldRow
+              label="성별"
+              chip={me?.gender ? (me.gender === 'male' ? '남성' : '여성') : undefined}
+              chipVariant="mint"
+            />
+            <FieldRow label="생년월일" value={me?.date_of_birth ?? '—'} />
+            <FieldRow label="주간 목표" value={me?.goal != null ? String(me.goal) : '—'} />
+            <FieldRow
+              label="요리 레벨"
+              chip={me?.cooking_level ?? undefined}
+              chipVariant="beige"
+            />
+          </div>
 
-        <div className="actions">
-        <button className="editbtn" onClick={() => setShowEdit(true)}>프로필 수정</button>
-      </div>
-      <div style={{display:'flex', justifyContent:'flex-start', gap:12, marginTop:8, fontSize:12.5}}>
-        <button
-          type="button"
-          onClick={() => setShowAbout(true)}
-          style={{ background:'none', border:'none', color:'#6b7280', cursor:'pointer', padding:0 }}
-        >
-          쿠커스 소개
-        </button>
-        <span style={{width:1, height:14, background:'#d1d5db'}} />
-        <button
-          type="button"
-          onClick={() => setShowFAQ(true)}
-          style={{ background:'none', border:'none', color:'#6b7280', cursor:'pointer', padding:0 }}
-        >
-          FAQ
-        </button>
-      </div>
-        <div style={{display:'flex', justifyContent:'flex-end', marginTop:8}}>
-          <a role="link" onClick={()=>setShowDelete(true)} style={{cursor:'pointer', fontSize:12, color:'#9ca3af', textDecoration:'none'}}>회원탈퇴</a>
-        </div>
-      </div>
-      )}
-
-      {activeTab === 'badges' && (
-        <div className="card my-card">
-          <div className="my-badge-header">
-            <h3 style={{marginTop:0}}>나의 뱃지</h3>
+          <div className="actions">
+            <button className="editbtn" onClick={() => setShowEdit(true)}>프로필 수정</button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', gap: 12, marginTop: 8, fontSize: 12.5 }}>
             <button
               type="button"
-              className="btn btn--tiny"
-              onClick={() => { setDisplayError(null); setShowBadgeSelector(true) }}
-              disabled={earnedBadges.length === 0}
+              onClick={() => setShowAbout(true)}
+              style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0 }}
             >
-              프로필 표시 선택
+              쿠커스 소개
+            </button>
+            <span style={{ width: 1, height: 14, background: '#d1d5db' }} />
+            <button
+              type="button"
+              onClick={() => setShowFAQ(true)}
+              style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0 }}
+            >
+              FAQ
             </button>
           </div>
-          {badgeLoading && <div className="note">뱃지를 불러오는 중...</div>}
-          {badgeError && <div className="error">{badgeError}</div>}
-          {!badgeLoading && !badgeError && !badgeOverview && (
-            <div className="note">아직 획득한 배지가 없어요.</div>
-          )}
-          {badgeOverview && (
-            <BadgeGallery
-              overview={badgeOverview}
-              displayedBadgeId={displayedBadgeId}
-              onDisplayChange={handleBadgeDisplayChange}
-              displayLoading={displayLoading}
-              displayError={displayError}
-            />
-          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+            <a
+              role="link"
+              onClick={() => setShowDelete(true)}
+              style={{ cursor: 'pointer', fontSize: 12, color: '#9ca3af', textDecoration: 'none' }}
+            >
+              회원탈퇴
+            </a>
+          </div>
         </div>
-      )}
-      {showEdit && me && (
-        <EditProfileDialog
-          me={me}
-          onClose={() => setShowEdit(false)}
-          onSaved={async () => { setShowEdit(false); await fetchMe() }}
-        />
-      )}
-      {showDelete && (
-        <DeleteAccountDialog onClose={()=>setShowDelete(false)} />
-      )}
-      {showBadgeSelector && badgeOverview && (
-        <BadgeDisplaySelector
-          earnedBadges={badgeOverview.earned}
-          displayedBadgeId={displayedBadgeId}
-          onSelect={handleBadgeDisplayChange}
-          loading={displayLoading}
-          error={displayError}
-          onClose={() => setShowBadgeSelector(false)}
-        />
-      )}
-    </section>
-    {showAbout && <AboutCookusModal onClose={() => setShowAbout(false)} />}
-    {showFAQ && <FaqModal onClose={() => setShowFAQ(false)} />}
+        {showEdit && me && (
+          <EditProfileDialog
+            me={me}
+            onClose={() => setShowEdit(false)}
+            onSaved={async () => { setShowEdit(false); await fetchMe() }}
+          />
+        )}
+        {showDelete && (
+          <DeleteAccountDialog onClose={() => setShowDelete(false)} />
+        )}
+      </section>
+      {showAbout && <AboutCookusModal onClose={() => setShowAbout(false)} />}
+      {showFAQ && <FaqModal onClose={() => setShowFAQ(false)} />}
     </>
   )
 }
+
 
 function DeleteAccountDialog({ onClose }: { onClose: () => void }){
   const [pw, setPw] = useState('')

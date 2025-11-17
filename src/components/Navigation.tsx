@@ -14,6 +14,7 @@ type Props = {
   onRecommendClick: () => void
   onShowAllRecipes?: () => void
   onSupplementRecommendClick?: () => void
+  onShowBadges?: () => void
 }
 
 export default function Navigation({
@@ -26,20 +27,29 @@ export default function Navigation({
   onRecommendClick,
   onShowAllRecipes,
   onSupplementRecommendClick,
+  onShowBadges,
 }: Props) {
   const displayedBadgeId = user?.displayed_badge_id ?? null
   const displayedBadgeMeta = displayedBadgeId ? badgeMetaById[displayedBadgeId] : undefined
   const displayedBadgeCode = displayedBadgeMeta?.iconCode
-  const [showSupplementAction, setShowSupplementAction] = useState(false)
+  const [showExtraActions, setShowExtraActions] = useState(false)
+  const hasExtraAction = !!onSupplementRecommendClick || !!onShowBadges
 
   const toggleSupplementAction = () => {
-    setShowSupplementAction(prev => !prev)
+    if (!hasExtraAction) return
+    setShowExtraActions(prev => !prev)
   }
 
   const handleSupplementClick = () => {
     if (!onSupplementRecommendClick) return
     onSupplementRecommendClick()
-    setShowSupplementAction(false)
+    setShowExtraActions(false)
+  }
+
+  const handleBadgeClick = () => {
+    if (!onShowBadges) return
+    onShowBadges()
+    setShowExtraActions(false)
   }
 
   return (
@@ -81,28 +91,35 @@ export default function Navigation({
           <button className="btn" onClick={onAddClick}>재료 추가</button>
           <div className="header-actions__pair">
             <button className="btn primary" onClick={onRecommendClick}>레시피 추천⭐</button>
-            {onSupplementRecommendClick && (
+            {hasExtraAction && (
               <button
                 type="button"
-                className={`btn caret-toggle ${showSupplementAction ? 'is-open' : ''}`}
-                aria-expanded={showSupplementAction}
-                aria-label={showSupplementAction ? '영양제 추천 받아보기' : '영양제 추천 받아보기'}
+                className={`btn caret-toggle ${showExtraActions ? 'is-open' : ''}`}
+                aria-expanded={showExtraActions}
+                aria-label={showExtraActions ? '영양제 추천 받아보기' : '영양제 추천 받아보기'}
                 onClick={toggleSupplementAction}
               >
-                <span aria-hidden>{showSupplementAction ? '▲' : '▼'}</span>
+                <span aria-hidden>{showExtraActions ? '▲' : '▼'}</span>
               </button>
             )}
           </div>
         </div>
-        {onSupplementRecommendClick && (
+        {hasExtraAction && (
           <div
             id="supplement-actions"
-            className={`header-actions-extra ${showSupplementAction ? 'open' : ''}`}
-            aria-hidden={!showSupplementAction}
+            className={`header-actions-extra ${showExtraActions ? 'open' : ''}`}
+            aria-hidden={!showExtraActions}
           >
-            <button className="btn ghost ghost--subtle" onClick={handleSupplementClick}>
-              영양제 추천 받아보기
-            </button>
+            {onSupplementRecommendClick && (
+              <button className="btn ghost ghost--subtle" onClick={handleSupplementClick}>
+                영양제 추천 받아보기
+              </button>
+            )}
+            {onShowBadges && (
+              <button className="btn ghost ghost--subtle" onClick={handleBadgeClick} style={{backgroundColor: "#FFF3CF"}}>
+                뱃지 보러가기
+              </button>
+            )}
           </div>
         )}
       </div>

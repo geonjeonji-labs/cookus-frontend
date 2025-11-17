@@ -18,10 +18,11 @@ import { authAPI } from './api/auth'
 import CookTest from './pages/CookTest'
 import Nutrition from './pages/Nutrition'
 import Notifications from './components/Notifications'
+import Badges from './pages/Badges'
 import type { Recipe } from './api/recipe'
 
 export type User = { user_id: string; user_name: string; displayed_badge_id?: number | null }
-export type TabKey = 'fridge' | 'calendar' | 'dashboard' | 'cooktest' | 'nutrition' | 'mypage'
+export type TabKey = 'fridge' | 'calendar' | 'dashboard' | 'cooktest' | 'nutrition' | 'mypage' | 'badges'
 
 export default function App() {
   const [tab, setTab] = useState<TabKey>('fridge')
@@ -69,11 +70,11 @@ export default function App() {
     setTab(isLoggedIn ? 'calendar' : 'fridge')
     if (!isLoggedIn) {
       setShowQuickAdd(false)
-      setShowQuickRecommend(false)
-      setShowSupplementRecommend(false)
-      setQuickDetail(null)
-      setPendingRecipeIds([])
-      setConfirmedRecipeIds([])
+    setShowQuickRecommend(false)
+    setShowSupplementRecommend(false)
+    setQuickDetail(null)
+    setPendingRecipeIds([])
+    setConfirmedRecipeIds([])
     }
   }, [isLoggedIn])
 
@@ -126,6 +127,14 @@ export default function App() {
     setShowQuickAdd(true)
   }
 
+  const openBadgeGallery = () => {
+    if (!isLoggedIn) {
+      requireLogin()
+      return
+    }
+    setTab('badges')
+  }
+
   const openRecommendAction = () => {
     if (!isLoggedIn) {
       requireLogin()
@@ -172,6 +181,7 @@ export default function App() {
             setCalendarFullKey(prev => prev + 1)
           }}
           onSupplementRecommendClick={openSupplementRecommendAction}
+          onShowBadges={openBadgeGallery}
         />
 
         {isLoggedIn ? (
@@ -215,6 +225,13 @@ export default function App() {
               onRequireLogin={requireLogin}
               user={user}
               refreshUser={refreshUser}
+            />
+          )}
+
+          {tab === 'badges' && (
+            <Badges
+              isLoggedIn={isLoggedIn}
+              onRequireLogin={requireLogin}
             />
           )}
         </main>

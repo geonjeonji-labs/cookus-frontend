@@ -91,6 +91,7 @@
 .header-actions-extra.open{
   opacity:1;
   pointer-events:auto;
+  gap: 6px;
   transform:translateY(0);
 }
 
