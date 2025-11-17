@@ -241,7 +241,7 @@ export default function App() {
           )}
 
           {tab === 'dashboard' && (
-            <Dashboard isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} />
+            <Dashboard isLoggedIn={isLoggedIn} onRequireLogin={requireLogin} userName={user?.user_name} />
           )}
 
           {tab === 'nutrition' && (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './DashboardTab.css'
 import {
   getProgress,
@@ -14,6 +14,24 @@ import {
 import ReactApexChart from 'react-apexcharts'
 import type { ApexOptions } from 'apexcharts'
 import servingBattery from '../assets/서빙 건전지.png'
+import { getAccessToken } from '../api/session'
+
+const DETAIL_DASHBOARD_URL = import.meta.env.VITE_DETAIL_DASHBOARD_URL || '/dashboard/'
+
+const buildDetailDashboardUrl = (token: string) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const resolved = new URL(DETAIL_DASHBOARD_URL, window.location.origin)
+      resolved.searchParams.set('token', token)
+      return resolved.toString()
+    } catch {
+      /* ignore */
+    }
+  }
+  const base = DETAIL_DASHBOARD_URL || '/dashboard/'
+  const join = base.includes('?') ? '&' : '?'
+  return `${base}${join}token=${encodeURIComponent(token)}`
+}
 
 type Props = {
   isLoggedIn: boolean
@@ -36,10 +54,6 @@ export default function Dashboard({ isLoggedIn, onRequireLogin, userName }: Prop
   return <DashboardInner userName={userName} onRequireLogin={onRequireLogin} />
 }
 
-const openDashboard = () => {
-  window.open('/dashboard/', '_blank');
-};
-
 function DashboardInner({ userName, onRequireLogin }: { userName?: string; onRequireLogin: () => void }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +63,16 @@ function DashboardInner({ userName, onRequireLogin }: { userName?: string; onReq
   const [levelWeekly, setLevelWeekly] = useState<LevelWeekly>([])
   const [categories, setCategories] = useState<CategoryRow[]>([])
   const [month, setMonth] = useState<string>(() => formatMonthInput(new Date()))
+
+  const handleOpenDashboard = useCallback(() => {
+    const token = getAccessToken()
+    if (!token) {
+      onRequireLogin()
+      return
+    }
+    const targetUrl = buildDetailDashboardUrl(token)
+    window.open(targetUrl, '_blank', 'noopener')
+  }, [onRequireLogin])
 
   const abortRef = useRef<AbortController | null>(null)
   const selectedDateParam = useMemo(() => monthToParam(month), [month])
@@ -267,7 +291,7 @@ function DashboardInner({ userName, onRequireLogin }: { userName?: string; onReq
               </div>
             )}
           </div>
-          <button className="btn ghost" onClick={openDashboard} style={{ marginLeft: 8 }}>자세한 대시보드</button>
+          <button className="btn ghost" onClick={handleOpenDashboard} style={{ marginLeft: 8 }}>자세한 대시보드</button>
         </div>
       </div>
 
