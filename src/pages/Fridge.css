@@ -42,7 +42,7 @@
   width:auto;
   min-width:min(420px, 88vw);
   max-width:min(720px, calc(100vw - 40px));
-  height:60vh;
+  height:auto;
   max-height:calc(100vh - 56px);
   overflow:auto;
   position:relative;
