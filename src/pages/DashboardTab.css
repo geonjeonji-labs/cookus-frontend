@@ -29,7 +29,7 @@
 .app-tab.dashboard .db-actions{ display:flex; align-items:center }
 .app-tab.dashboard .month-wrap{ position:relative; display:inline-block }
 .app-tab.dashboard .month-picker-btn{
-  height:36px; min-width:140px; padding:8px 18px; border-radius:14px;
+  height:36px; min-width:120px; padding:8px 18px; border-radius:14px;
   border:1.5px solid #d7b46a; background:#FFF3D6; color:#5a3b2a;
   font-weight:800; cursor:pointer; letter-spacing:0.02em;
   box-shadow: 0 1px 0 rgba(255,255,255,.85) inset;

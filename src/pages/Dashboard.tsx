@@ -36,6 +36,10 @@ export default function Dashboard({ isLoggedIn, onRequireLogin, userName }: Prop
   return <DashboardInner userName={userName} onRequireLogin={onRequireLogin} />
 }
 
+const openDashboard = () => {
+  window.open('/dashboard/', '_blank');
+};
+
 function DashboardInner({ userName, onRequireLogin }: { userName?: string; onRequireLogin: () => void }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -223,6 +227,11 @@ function DashboardInner({ userName, onRequireLogin }: { userName?: string; onReq
 
   return (
     <section className="app-tab dashboard">
+      {loading && (
+        <div className="note" role="status" aria-live="polite" style={{ marginBottom: 12 }}>
+          지표를 불러오는 중입니다...
+        </div>
+      )}
       <div className="db-header">
         <h2 className="title">{userName ? `${userName}님의 대시보드` : '대시보드'}</h2>
         <div className="db-actions">
@@ -258,7 +267,7 @@ function DashboardInner({ userName, onRequireLogin }: { userName?: string; onReq
               </div>
             )}
           </div>
-          <button className="btn ghost" onClick={load} disabled={loading} style={{ marginLeft: 8 }}>새로고침</button>
+          <button className="btn ghost" onClick={openDashboard} style={{ marginLeft: 8 }}>자세한 대시보드</button>
         </div>
       </div>
 

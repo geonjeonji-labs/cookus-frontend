@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import './App.css'
 
 import Fridge from './pages/Fridge'
@@ -24,8 +24,30 @@ import type { Recipe } from './api/recipe'
 export type User = { user_id: string; user_name: string; displayed_badge_id?: number | null }
 export type TabKey = 'fridge' | 'calendar' | 'dashboard' | 'cooktest' | 'nutrition' | 'mypage' | 'badges'
 
+const tabFromPathname = (pathname: string): TabKey | null => {
+  const normalized = pathname.replace(/\/+$/, '/')
+  switch (normalized) {
+    case '/calendar/':
+      return 'calendar'
+    case '/dashboard/':
+      return 'dashboard'
+    case '/cooktest/':
+      return 'cooktest'
+    case '/nutrition/':
+      return 'nutrition'
+    case '/mypage/':
+      return 'mypage'
+    case '/badges/':
+      return 'badges'
+    default:
+      return null
+  }
+}
+
 export default function App() {
-  const [tab, setTab] = useState<TabKey>('fridge')
+  const initialTabFromPath = typeof window !== 'undefined' ? tabFromPathname(window.location.pathname) : null
+  const initialTabRef = useRef<TabKey | null>(initialTabFromPath)
+  const [tab, setTab] = useState<TabKey>(initialTabFromPath ?? 'fridge')
   const [user, setUser] = useState<User | null>(null)
   const [showLogin, setShowLogin] = useState(false)
   const [booting, setBooting] = useState(true)
@@ -67,7 +89,14 @@ export default function App() {
   const requireLogin = () => setShowLogin(true)
 
   useEffect(() => {
-    setTab(isLoggedIn ? 'calendar' : 'fridge')
+    setTab(prev => {
+      if (initialTabRef.current) {
+        const nextTab = initialTabRef.current
+        initialTabRef.current = null
+        return nextTab
+      }
+      return isLoggedIn ? 'calendar' : 'fridge'
+    })
     if (!isLoggedIn) {
       setShowQuickAdd(false)
     setShowQuickRecommend(false)
@@ -188,7 +217,7 @@ export default function App() {
           <Notifications isLoggedIn={isLoggedIn} />
         ) : (
           <div className="noti noti-home">
-            <button className="bell" onClick={() => setTab('fridge')} title="홈으로 이동">
+            <button className="bell" onClick={() => setTab('fridge')} title="Ȩ���� �̵�">
               🏠
             </button>
           </div>

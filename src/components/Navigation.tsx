@@ -90,7 +90,7 @@ export default function Navigation({
           )}
           <button className="btn" onClick={onAddClick}>재료 추가</button>
           <div className="header-actions__pair">
-            <button className="btn primary" onClick={onRecommendClick}>레시피 추천⭐</button>
+            <button className="btn primary" onClick={onRecommendClick}>레시피 추천</button>
             {hasExtraAction && (
               <button
                 type="button"
