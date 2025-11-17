@@ -13,7 +13,17 @@ jobs:
     permissions: { id-token: write, contents: read }
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t ${ECR_REPO}:${{ github.sha }} .
+      - name: Build image
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_APP_MODE: ${{ secrets.VITE_APP_MODE }}
+          VITE_DETAIL_DASHBOARD_URL: ${{ secrets.VITE_DETAIL_DASHBOARD_URL }}
+        run: |
+          docker build \
+            --build-arg VITE_API_BASE_URL=$VITE_API_BASE_URL \
+            --build-arg VITE_APP_MODE=$VITE_APP_MODE \
+            --build-arg VITE_DETAIL_DASHBOARD_URL=$VITE_DETAIL_DASHBOARD_URL \
+            -t ${ECR_REPO}:${{ github.sha }} .
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
