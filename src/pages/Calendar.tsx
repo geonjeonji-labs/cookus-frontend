@@ -435,7 +435,7 @@ export default function Calendar({ isLoggedIn, userName, fullRequestKey }: Calen
                       if (stat) info.push(`영양제 ${stat.taken}/${stat.total}`)
                       const title = info.length ? info.join(' / ') : undefined
                       const isFuture = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime() > todayAnchor.getTime()
-                      const nutColor = stat ? dotColor(stat, isFuture) : null
+                      const nutIndicator = stat ? dotColor(stat, isFuture) : null
                       const classes = [
                         'cell',
                         'day',
@@ -459,11 +459,19 @@ export default function Calendar({ isLoggedIn, userName, fullRequestKey }: Calen
                                 <span className="dot dot--recipe" aria-hidden />
                               )
                             )}
-                            {nutColor && (
+                            {nutIndicator && (
                               <span
-                                className="dot dot--nut"
+                                className={[
+                                  'dot',
+                                  'dot--nut',
+                                  nutIndicator.missed ? 'dot--nut-missed' : '',
+                                ].join(' ').trim()}
                                 aria-hidden
-                                style={{ background: nutColor }}
+                                style={
+                                  !nutIndicator.missed && nutIndicator.color
+                                    ? { background: nutIndicator.color }
+                                    : undefined
+                                }
                                 title={title}
                               />
                             )}
@@ -733,14 +741,16 @@ function slotLabel(slot: string): string {
   return '기타'
 }
 
-function dotColor(stat: DayStatus, isFuture: boolean) {
+type NutIndicator = { color?: string; missed?: boolean }
+
+function dotColor(stat: DayStatus, isFuture: boolean): NutIndicator | null {
   if (isFuture) return null
   const taken = Math.max(0, stat.taken ?? 0)
   const total = Math.max(0, stat.total ?? 0)
   if (taken === 0) {
-    return total === 0 ? null : '#ef4444'
+    return total === 0 ? null : { missed: true }
   }
-  if (total === 0) return '#16a34a'
-  if (taken >= total) return '#16a34a'
-  return '#f59e0b'
+  if (total === 0) return { color: '#16a34a' }
+  if (taken >= total) return { color: '#16a34a' }
+  return { color: '#f59e0b' }
 }

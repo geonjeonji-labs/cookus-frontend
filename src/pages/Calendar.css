@@ -390,6 +390,14 @@
   border-radius:999px;
   background-color:rgba(255,255,255,.6);
 }
+.calendar--trimmed .cell.day .dot.dot--nut.dot--nut-missed{
+  background:transparent;
+  border:1px solid rgba(80, 80, 80, 0.7);
+  box-shadow:none;
+}
+.calendar--trimmed .cell.day .dot.dot--nut.dot--nut-missed::after{
+  display:none;
+}
 .calendar--trimmed .cell.day .dot.dot--cooked{
   right:2px;
   bottom:0px;
