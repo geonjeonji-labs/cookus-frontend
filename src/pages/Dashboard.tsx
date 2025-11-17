@@ -257,7 +257,7 @@ function DashboardInner({ userName, onRequireLogin }: { userName?: string; onReq
         </div>
       )}
       <div className="db-header">
-        <h2 className="title">{userName ? `${userName}님의 대시보드` : '대시보드'}</h2>
+        <h2 className="title">{userName ? `대시보드` : '대시보드'}</h2>
         <div className="db-actions">
           <div className="month-wrap" ref={monthWrapRef}>
             <button
