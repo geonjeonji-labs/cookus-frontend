@@ -39,8 +39,10 @@
 }
 
 .rec-modal{
-  width:min(420px, 92vw);
-  max-height:86vh;
+  width:auto;
+  min-width:min(420px, 92vw);
+  max-width:clamp(420px, 92vw, 720px);
+  max-height:calc(100vh - 48px);
   overflow:auto;
   position:relative;
 }

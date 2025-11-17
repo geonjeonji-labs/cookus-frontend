@@ -56,6 +56,9 @@
   font-size:12px;
   font-weight:700;
 }
+.rc-card.selectable .chip{
+  padding-bottom:4px;
+}
 
 .rc-ings{
   color:#7b4e2d;
