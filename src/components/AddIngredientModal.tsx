@@ -19,8 +19,9 @@ const SPECIFIC_UNIT_MAP: Record<string, UnitMeta> = {
   생크림: { unit: 'ml', step: 100 },
 }
 
-const LIQUID_KEYWORDS = ['물', '주스', '소스', '오일', '식용유', '식초', '청', '육수', '국물', '우유', '크림', '액', '드레싱']
-const WEIGHT_KEYWORDS = ['고기', '살', '육', '가루', '분말', '쌀', '파스타', '면', '버터', '치즈', '햄', '베이컨']
+const EXACT_LIQUID_NAMES = ['물']
+const LIQUID_KEYWORDS = ['주스', '소스', '오일', '식용유', '식초', '청', '육수', '국물', '우유', '크림', '액', '드레싱']
+const WEIGHT_KEYWORDS = ['고기', '살', '육', '가루', '분말', '쌀', '파스타', '면', '버터']
 const defaultMeta: UnitMeta = { unit: '개', step: 1 }
 
 const getUnitMeta = (name: string): UnitMeta => {
@@ -28,6 +29,9 @@ const getUnitMeta = (name: string): UnitMeta => {
   const exact = SPECIFIC_UNIT_MAP[name.trim()]
   if (exact) return exact
   const normalized = name.replace(/\s+/g, '').toLowerCase()
+  if (EXACT_LIQUID_NAMES.includes(normalized)) {
+    return { unit: 'ml', step: 100 }
+  }
   if (LIQUID_KEYWORDS.some(k => normalized.includes(k))) {
     return { unit: 'ml', step: 100 }
   }
