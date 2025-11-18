@@ -373,6 +373,7 @@ export default function Calendar({ isLoggedIn, userName, fullRequestKey }: Calen
 
   const handleDeletePlan = async (planId: number) => {
     if (!selectedDay) return
+    setDailyPlans(prev => prev ? prev.filter(plan => plan.plan_id !== planId) : prev)
     try {
       await nutritionAPI.deletePlan(planId)
       await refreshNutritionStatus()
@@ -381,6 +382,7 @@ export default function Calendar({ isLoggedIn, userName, fullRequestKey }: Calen
     } catch (err) {
       console.error('[Calendar] delete plan failed:', err)
       showToastMessage('삭제하지 못했어요.', 'warn')
+      await loadDaily(selectedDay)
     }
   }
 
