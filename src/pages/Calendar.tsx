@@ -375,7 +375,7 @@ export default function Calendar({ isLoggedIn, userName, fullRequestKey }: Calen
     if (!selectedDay) return
     setDailyPlans(prev => prev ? prev.filter(plan => plan.plan_id !== planId) : prev)
     try {
-      await nutritionAPI.deletePlan(planId)
+      await nutritionAPI.deletePlan(planId, selectedDay)
       await refreshNutritionStatus()
       await loadDaily(selectedDay)
       showToastMessage('영양제 계획을 삭제했어요.', 'ok')

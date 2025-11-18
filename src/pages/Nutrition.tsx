@@ -202,7 +202,7 @@ export default function Nutrition({ isLoggedIn, onRequireLogin, userName }: Prop
                           onClick={async () => {
                             setDaily(prev => prev ? prev.filter(p => p.plan_id != dp.plan_id) : prev)
                             try {
-                              await nutritionAPI.deletePlan(dp.plan_id)
+                              await nutritionAPI.deletePlan(dp.plan_id, selectedDay || undefined)
                             } finally {
                               await load()
                               await loadDaily(selectedDay!)

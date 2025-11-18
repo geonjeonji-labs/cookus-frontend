@@ -76,8 +76,8 @@ export const nutritionAPI = {
     const { data } = await api.post('/nutrition/plans', { supplement_name: name, time_slot })
     return data
   },
-  async deletePlan(planId: number): Promise<void> {
-    await api.delete(`/nutrition/plans/${planId}`)
+  async deletePlan(planId: number, fromDate?: string): Promise<void> {
+    await api.delete(`/nutrition/plans/${planId}`, { params: fromDate ? { delete_from: fromDate } : undefined })
   },
   async updatePlan(planId: number, name: string, time_slot: TimeSlot): Promise<SupplementPlan> {
     const { data } = await api.put(`/nutrition/plans/${planId}`, { supplement_name: name, time_slot })
