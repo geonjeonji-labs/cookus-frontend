@@ -200,9 +200,13 @@ export default function Nutrition({ isLoggedIn, onRequireLogin, userName }: Prop
                           className="icon-btn small"
                           title="삭제"
                           onClick={async () => {
-                            await nutritionAPI.deletePlan(dp.plan_id)
-                            await load()
-                            await loadDaily(selectedDay!)
+                            setDaily(prev => prev ? prev.filter(p => p.plan_id != dp.plan_id) : prev)
+                            try {
+                              await nutritionAPI.deletePlan(dp.plan_id)
+                            } finally {
+                              await load()
+                              await loadDaily(selectedDay!)
+                            }
                           }}
                         >
                           🗑️
